@@ -7,11 +7,12 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from dash import html
 
-HOST     = "localhost"
-PORT     = 3306
-USER     = "root"
-PASSWORD = ""
-DATABASE = "school_db"
+import os
+HOST     = os.environ.get("DB_HOST", "localhost")
+PORT     = int(os.environ.get("DB_PORT", 3306))
+USER     = os.environ.get("DB_USER", "root")
+PASSWORD = os.environ.get("DB_PASSWORD", "")
+DATABASE = os.environ.get("DB_NAME", "school_db")
 
 engine = sqlalchemy.create_engine(
     f"mysql+pymysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
