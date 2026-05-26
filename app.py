@@ -2,6 +2,7 @@ from dash import Dash, dcc, html, Input, Output
 import db
 
 app = Dash(__name__, suppress_callback_exceptions=True)
+server = app.server
 app.title = "ລະບົບວິເຄາະຜົນການຮຽນ CS"
 
 NAV = [
