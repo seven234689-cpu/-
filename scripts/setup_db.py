@@ -8,7 +8,7 @@ import sqlalchemy as sa
 HOST     = "localhost"
 PORT     = 3306
 USER     = "root"
-PASSWORD = ""          # ← แก้ถ้ามี password
+PASSWORD = ""          
 DATABASE = "school_db"
 
 engine = sa.create_engine(

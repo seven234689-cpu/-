@@ -1,0 +1,26 @@
+/* assets/dark_login.css */
+
+/* Hide browser native password eye icon */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-textfield-decoration-container {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Fix autofill background — force white with dark text */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0px 1000px #FFFFFF inset !important;
+    -webkit-text-fill-color: #1E2A3A !important;
+    color: #1E2A3A !important;
+    caret-color: #1E2A3A !important;
+    transition: background-color 9999s ease-in-out 0s !important;
+}
+
+input::placeholder {
+    color: #A0AEC0 !important;
+}

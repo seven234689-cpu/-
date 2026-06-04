@@ -200,18 +200,9 @@ layout = html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':
                      style={'fontSize':'13px','color':db.TX,'marginTop':'4px',
                             'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'}),
         ]),
-        html.Div(style={'display':'flex','alignItems':'center','gap':'10px'}, children=[
-            html.Div('ກັ່ນຕອງພາກ:', style={
-                'fontSize':'12px','fontWeight':'600','color':db.TX,
-                'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'
-            }),
-            dcc.Dropdown(
-                id='dash-sem-filter',
-                options=sem_options,
-                value='all',
-                clearable=False,
-                style={'width':'160px','fontSize':'13px'}
-            )
+        html.Div(style={'display':'none'}, children=[
+            dcc.Dropdown(id='dash-sem-filter', options=sem_options,
+                         value='all', clearable=False)
         ])
     ]),
 
@@ -227,6 +218,7 @@ layout = html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':
         db.kpi_card(f'{db.frate}%', 'ອັດຕາ F',       db.RED,    '/assets/close.png'),
         db.kpi_card(db.male,        'ນ.ສ ຊາຍ',       db.BLUE,   '/assets/male.png'),
         db.kpi_card(db.female,      'ນ.ສ ຍິງ',       '#6A1B9A', '/assets/female.png'),
+
     ]),
 
     # Grade + Cluster (ขึ้นมาบน)
