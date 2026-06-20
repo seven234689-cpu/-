@@ -2,7 +2,6 @@ from dash import html, dcc, Input, Output, callback
 import plotly.graph_objects as go
 import plotly.express as px
 import numpy as np
-from scipy import stats
 import db
 
 # ── Chart helpers ──────────────────────────────────────────
@@ -62,8 +61,10 @@ fig_grade.update_yaxes(**yax(), title_text='ຈຳນວນ')
 
 # Subject
 # ── Top 10 ยากที่สุด / ง่ายที่สุด ────────────────────────
-top_hard = db.subj_avg.head(10)
-top_easy = db.subj_avg.tail(10).sort_values('avg_gp', ascending=True)
+top_hard = db.subj_avg.head(10).copy()
+top_hard['label'] = top_hard['label'].str[:30]
+top_easy = db.subj_avg.tail(10).sort_values('avg_gp', ascending=True).copy()
+top_easy['label'] = top_easy['label'].str[:30]
 
 fig_hard = go.Figure()
 fig_hard.add_trace(go.Bar(
@@ -75,10 +76,10 @@ fig_hard.add_trace(go.Bar(
 ))
 fig_hard.update_layout(
     plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
-    height=380, margin=dict(t=24,b=48,l=320,r=80),
+    height=400, margin=dict(t=24,b=48,l=220,r=60),
     hoverlabel=dict(bgcolor='white',font_size=13,font_color=db.TX2,bordercolor=db.BD))
 fig_hard.update_xaxes(**yax(), title_text='Avg Grade Point', range=[0, 4.5])
-fig_hard.update_yaxes(**xax(), title_text='')
+fig_hard.update_yaxes(**xax(), title_text='', tickfont=dict(size=11))
 
 fig_easy = go.Figure()
 fig_easy.add_trace(go.Bar(
@@ -90,56 +91,30 @@ fig_easy.add_trace(go.Bar(
 ))
 fig_easy.update_layout(
     plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
-    height=380, margin=dict(t=24,b=48,l=320,r=80),
+    height=400, margin=dict(t=24,b=48,l=220,r=60),
     hoverlabel=dict(bgcolor='white',font_size=13,font_color=db.TX2,bordercolor=db.BD))
 fig_easy.update_xaxes(**yax(), title_text='Avg Grade Point', range=[0, 4.5])
-fig_easy.update_yaxes(**xax(), title_text='')
+fig_easy.update_yaxes(**xax(), title_text='', tickfont=dict(size=11))
 
 
 # Heatmap
-fig_heat = px.imshow(db.hp, color_continuous_scale='YlOrRd', aspect='auto',
-    labels=dict(x='ພາກຮຽນ', y='ລະຫັດວິຊາ', color='GP'))
-fig_heat.update_coloraxes(colorbar=dict(
-    tickfont=dict(color=db.TX), title=dict(text='GP', font=dict(color=db.TX))))
-fig_heat.update_layout(
-    plot_bgcolor=db.CARD, paper_bgcolor=db.CARD, font=db.FONT,
-    height=1000, margin=dict(t=24,b=48,l=120,r=20))
-fig_heat.update_xaxes(color=db.TX, linecolor=db.BD)
-fig_heat.update_yaxes(color=db.TX, linecolor=db.BD)
+if len(db.hp) > 0:
+    fig_heat = px.imshow(db.hp, color_continuous_scale='YlOrRd', aspect='auto',
+        labels=dict(x='ພາກຮຽນ', y='ລະຫັດວິຊາ', color='GP'))
+    fig_heat.update_coloraxes(colorbar=dict(
+        tickfont=dict(color=db.TX), title=dict(text='GP', font=dict(color=db.TX))))
+    fig_heat.update_layout(
+        plot_bgcolor=db.CARD, paper_bgcolor=db.CARD, font=db.FONT,
+        height=1000, margin=dict(t=24,b=48,l=120,r=20))
+    fig_heat.update_xaxes(color=db.TX, linecolor=db.BD)
+    fig_heat.update_yaxes(color=db.TX, linecolor=db.BD)
+else:
+    fig_heat = go.Figure()
+    fig_heat.update_layout(plot_bgcolor=db.CARD, paper_bgcolor=db.CARD,
+        height=200, annotations=[dict(text='ບໍ່ມີຂໍ້ມູນ', x=0.5, y=0.5,
+        showarrow=False, font=dict(size=16, color=db.TX))])
 
-# Regression
-x_idx = np.arange(len(db.trend_all))
-y_val = db.trend_all['avg_gpa'].values
-slope, intercept, r_val, p_val, _ = stats.linregress(x_idx, y_val)
-y_pred = slope * x_idx + intercept
-r2 = round(r_val**2, 4)
-direction = 'ເພີ່ມຂຶ້ນ' if slope > 0 else 'ຫຼຸດລົງ'
 
-fig_reg = go.Figure()
-fig_reg.add_trace(go.Scatter(
-    x=db.trend_all['semester'], y=db.trend_all['avg_gpa'],
-    mode='markers+text', text=db.trend_all['avg_gpa'].astype(str),
-    textposition=['top center','bottom center','top center','bottom center',
-                  'top center','bottom center','top center','bottom center'],
-    textfont=dict(size=11, color=db.BLUE),
-    marker=dict(size=11, color=db.BLUE, line=dict(color='white', width=2)),
-    name='GPA ສະເລ່ຍ',
-    hovertemplate='<b>ພາກ %{x}</b><br>GPA: %{y:.3f}<extra></extra>'
-))
-fig_reg.add_trace(go.Scatter(
-    x=db.trend_all['semester'], y=y_pred, mode='lines',
-    line=dict(color='#6A1B9A',width=2,dash='dash'),
-    name=f'Regression Line (R²={r2})',
-    hovertemplate='ຄ່າທຳນາຍ: %{y:.3f}<extra></extra>'
-))
-fig_reg.update_layout(
-    plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
-    height=500, margin=dict(t=80,b=52,l=56,r=24), showlegend=True,
-    legend=dict(orientation='h', y=-0.25, x=0.5, xanchor='center',
-                bgcolor='rgba(0,0,0,0)', font=dict(size=12, color=db.TX2)),
-    hoverlabel=dict(bgcolor='white',font_size=13,font_color=db.TX2,bordercolor=db.BD))
-fig_reg.update_xaxes(**xax(), title_text='ພາກຮຽນ')
-fig_reg.update_yaxes(**yax(), range=[2.0,4.0], title_text='GPA')
 
 # Box plot
 fig_box = go.Figure()
@@ -156,19 +131,25 @@ fig_box.update_xaxes(**xax(), title_text='ພາກຮຽນ')
 fig_box.update_yaxes(**yax(), title_text='GPA')
 
 # Correlation
-pivot_c = (db.df.groupby(['student_code','subject_code'])['grade_point']
-             .mean().unstack(fill_value=np.nan))
-pivot_c = pivot_c.loc[:, pivot_c.count() >= 30]
-corr_m  = pivot_c.corr()
-fig_corr = px.imshow(corr_m, color_continuous_scale='RdBu_r', zmin=-1, zmax=1,
-    aspect='auto', labels=dict(color='r'))
-fig_corr.update_coloraxes(colorbar=dict(
-    tickfont=dict(color=db.TX), title=dict(text='r',font=dict(color=db.TX))))
-fig_corr.update_layout(
-    plot_bgcolor=db.CARD, paper_bgcolor=db.CARD, font=db.FONT,
-    height=600, margin=dict(t=24,b=48,l=100,r=20))
-fig_corr.update_xaxes(color=db.TX, linecolor=db.BD, tickfont=dict(size=8))
-fig_corr.update_yaxes(color=db.TX, linecolor=db.BD, tickfont=dict(size=8))
+if len(db.df) > 0:
+    pivot_c = (db.df.groupby(['student_code','subject_code'])['grade_point']
+                 .mean().unstack(fill_value=np.nan))
+    pivot_c = pivot_c.loc[:, pivot_c.count() >= 30]
+    corr_m  = pivot_c.corr()
+    fig_corr = px.imshow(corr_m, color_continuous_scale='RdBu_r', zmin=-1, zmax=1,
+        aspect='auto', labels=dict(color='r'))
+    fig_corr.update_coloraxes(colorbar=dict(
+        tickfont=dict(color=db.TX), title=dict(text='r',font=dict(color=db.TX))))
+    fig_corr.update_layout(
+        plot_bgcolor=db.CARD, paper_bgcolor=db.CARD, font=db.FONT,
+        height=600, margin=dict(t=24,b=48,l=100,r=20))
+    fig_corr.update_xaxes(color=db.TX, linecolor=db.BD, tickfont=dict(size=8))
+    fig_corr.update_yaxes(color=db.TX, linecolor=db.BD, tickfont=dict(size=8))
+else:
+    fig_corr = go.Figure()
+    fig_corr.update_layout(plot_bgcolor=db.CARD, paper_bgcolor=db.CARD,
+        height=200, annotations=[dict(text='ບໍ່ມີຂໍ້ມູນ', x=0.5, y=0.5,
+        showarrow=False, font=dict(size=16, color=db.TX))])
 
 # ── Helpers ───────────────────────────────────────────────
 def card(title, sub, children, accent=db.BLUE):
@@ -189,6 +170,13 @@ def stat_box(value, label, color):
 sem_options = [{'label':'ທຸກພາກ','value':'all'}] + \
               [{'label':s,'value':s} for s in db.sem_order]
 
+major_options = [
+    {'label':'ທຸກສາຂາ',                           'value':'all'},
+    {'label':'ວິທະຍາສາດຄອມພິວເຕີ',               'value':'ວິທະຍາສາດຄອມພິວເຕີ'},
+    {'label':'ການພັດທະນາເວັບໄຊ',                 'value':'ການພັດທະນາເວັບໄຊ'},
+    {'label':'ການພັດທະນາໂປຣແກຣມຄອມພິວເຕີ',      'value':'ການພັດທະນາໂປຣແກຣມຄອມພິວເຕີ'},
+]
+
 # ── Layout ────────────────────────────────────────────────
 layout = html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':'100vh'}, children=[
 
@@ -196,14 +184,13 @@ layout = html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':
                     'justifyContent':'space-between','alignItems':'center'}, children=[
         html.Div([
             html.Div('Dashboard', style={'fontSize':'22px','fontWeight':'700','color':db.TX2}),
-            html.Div('ພາບລວມຜົນການຮຽນ — ສາຂາວິທະຍາສາດຄອມພິວເຕີ',
+            html.Div('ພາບລວມຜົນການຮຽນ — ພາກວິຊາວິທະຍາສາດຄອມພິວເຕີ',
                      style={'fontSize':'13px','color':db.TX,'marginTop':'4px',
                             'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'}),
         ]),
-        html.Div(style={'display':'none'}, children=[
-            dcc.Dropdown(id='dash-sem-filter', options=sem_options,
-                         value='all', clearable=False)
-        ])
+        dcc.Dropdown(id='dash-major-filter', options=major_options,
+            value='all', clearable=False,
+            style={'fontSize':'13px','minWidth':'200px'})
     ]),
 
 
@@ -249,72 +236,9 @@ layout = html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':
         ]),
     ]),
 
-    # Regression
-    html.Div(style=db.card_style('#6A1B9A'), children=[
-        db.sec_title('ການວິເຄາະທ່ວງໂນ້ມ GPA (Regression Analysis)'),
-        db.sec_sub(f'GPA ໂດຍລວມມີທ່ວງໂນ້ມ{direction} ຕາມພາກຮຽນ'),
-
-        # Summary boxes ด้านบน
-        html.Div(style={'display':'grid','gridTemplateColumns':'repeat(4,1fr)',
-                        'gap':'12px','marginBottom':'20px'}, children=[
-
-            html.Div(style={'background':'#F3E5F5','borderRadius':'12px','padding':'16px',
-                            'textAlign':'center','border':'1px solid #CE93D8'}, children=[
-                html.Div('📉' if slope < 0 else '📈', style={'fontSize':'28px','marginBottom':'4px'}),
-                html.Div('ທ່ວງໂນ້ມ GPA', style={'fontSize':'11px','color':'#6A1B9A',
-                         'fontFamily':'Noto Sans Lao,Segoe UI','fontWeight':'600'}),
-                html.Div(f'{"ຫຼຸດລົງ" if slope<0 else "ສູງຂຶ້ນ"}', style={
-                    'fontSize':'18px','fontWeight':'700',
-                    'color':db.RED if slope<0 else db.GREEN,'marginTop':'4px'})
-            ]),
-
-            html.Div(style={'background':'#EDE7F6','borderRadius':'12px','padding':'16px',
-                            'textAlign':'center','border':'1px solid #B39DDB'}, children=[
-                html.Div('📊', style={'fontSize':'28px','marginBottom':'4px'}),
-                html.Div('R² (ຄວາມໜ້າເຊື່ອຖື)', style={'fontSize':'11px','color':'#6A1B9A',
-                         'fontFamily':'Noto Sans Lao,Segoe UI','fontWeight':'600'}),
-                html.Div(str(r2), style={'fontSize':'18px','fontWeight':'700',
-                                         'color':'#6A1B9A','marginTop':'4px'}),
-                html.Div(f'{round(r2*100,1)}% ຂອງຂໍ້ມູນ', style={'fontSize':'10px','color':db.TX,
-                         'fontFamily':'Noto Sans Lao,Segoe UI'})
-            ]),
-
-            html.Div(style={'background':'#E8EAF6','borderRadius':'12px','padding':'16px',
-                            'textAlign':'center','border':'1px solid #9FA8DA'}, children=[
-                html.Div('📐', style={'fontSize':'28px','marginBottom':'4px'}),
-                html.Div('Slope (ອັດຕາການປ່ຽນ)', style={'fontSize':'11px','color':'#3949AB',
-                         'fontFamily':'Noto Sans Lao,Segoe UI','fontWeight':'600'}),
-                html.Div(str(round(slope,4)), style={'fontSize':'18px','fontWeight':'700',
-                    'color':db.GREEN if slope>0 else db.RED,'marginTop':'4px'}),
-                html.Div('ຕໍ່ 1 ພາກຮຽນ', style={'fontSize':'10px','color':db.TX,
-                         'fontFamily':'Noto Sans Lao,Segoe UI'})
-            ]),
-
-            html.Div(style={
-                'background':'#E8F5E9' if p_val<0.05 else '#FFEBEE',
-                'borderRadius':'12px','padding':'16px',
-                'textAlign':'center',
-                'border':f'1px solid {"#A5D6A7" if p_val<0.05 else "#FFCDD2"}'
-            }, children=[
-                html.Div('✅' if p_val<0.05 else '❌', style={'fontSize':'28px','marginBottom':'4px'}),
-                html.Div('P-Value', style={'fontSize':'11px',
-                    'color':db.GREEN if p_val<0.05 else db.RED,
-                    'fontFamily':'Noto Sans Lao,Segoe UI','fontWeight':'600'}),
-                html.Div(str(round(p_val,4)), style={'fontSize':'18px','fontWeight':'700',
-                    'color':db.GREEN if p_val<0.05 else db.RED,'marginTop':'4px'}),
-                html.Div('ມີນັຍສຳຄັນ ✓' if p_val<0.05 else 'ບໍ່ມີນັຍສຳຄັນ', style={
-                    'fontSize':'10px','color':db.GREEN if p_val<0.05 else db.RED,
-                    'fontFamily':'Noto Sans Lao,Segoe UI'})
-            ]),
-        ]),
-
-        # กราฟ
-        dcc.Graph(figure=fig_reg, config={'displayModeBar':False}),
-    ]),
-
     html.Div(style={'display':'grid','gridTemplateColumns':'1fr 1fr','gap':'20px','marginBottom':'20px'}, children=[
         card('🔴 Top 10 ວິຊາທີ່ຍາກທີ່ສຸດ',
-             'ວິຊາທີ່ນ.ສ ໄດ້ຄະແນນສະເລ່ຍຕ່ຳທີ່ສຸດ 10 ວິຊາ',
+             'ວິຊາທີ່ ນ.ສ ໄດ້ຄະແນນສະເລ່ຍຕ່ຳທີ່ສຸດ 10 ວິຊາ',
              [dcc.Graph(figure=fig_hard,config={'displayModeBar':False})],accent=db.RED),
         card('🟢 Top 10 ວິຊາທີ່ງ່າຍທີ່ສຸດ',
              'ວິຊາທີ່ນ.ສ ໄດ້ຄະແນນສະເລ່ຍສູງທີ່ສຸດ 10 ວິຊາ',
@@ -326,10 +250,6 @@ layout = html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':
          'ແຕ່ລະຈຸດ = ນ.ສ 1 ຄົນ · ສີຂຽວ = ສູງ · ສີຟ້າ = ກາງ · ສີແດງ = ສ່ຽງ',
          [dcc.Graph(id='dash-scatter', config={'displayModeBar':False})],accent='#0277BD'),
 
-    # Bar Chart GPA by Year
-    card('GPA ສະເລ່ຍ ແຍກຕາມຊັ້ນປີ',
-         'ປຽບທຽບ GPA ສະເລ່ຍ ນ.ສ ປີ 1, 2, 3, 4',
-         [dcc.Graph(id='dash-year', config={'displayModeBar':False})],accent='#0277BD'),
 ])
 
 
@@ -341,18 +261,22 @@ def register_callbacks(app):
         Output('dash-gender','figure'),
         Output('dash-grade','figure'),
         Output('dash-scatter','figure'),
-        Output('dash-year','figure'),
         Output('dash-donut','figure'),
         Output('dash-cluster-stats','children'),
-        Input('dash-sem-filter','value')
+        Input('dash-major-filter','value')
     )
-    def update_charts(sem):
-        # Filter data
-        if sem == 'all':
+    def update_charts(major):
+        sem = 'all'
+        # Filter data by major
+        if major == 'all':
             dff = db.df
             dff_gpa = db.df_gpa
         else:
-            dff = db.df[db.df['semester'] == sem]
+            if 'major' in db.df_gpa.columns:
+                stu_in = db.df_gpa[db.df_gpa['major'] == major]['student_code']
+            else:
+                stu_in = db.df_gpa['student_code']
+            dff = db.df[db.df['student_code'].isin(stu_in)]
             # คำนวณ GPA ใหม่จากข้อมูลที่ filter
             import numpy as np
             from sklearn.cluster import KMeans
@@ -450,28 +374,6 @@ def register_callbacks(app):
         fsc.update_yaxes(showgrid=True,gridcolor='#EEF0F5',zeroline=False,
                          title_text='GPA',range=[0,4.2])
 
-        # Bar by Year
-        colors = ['#1565C0','#2E7D32','#F57F17','#6A1B9A']
-        fyr = go.Figure([go.Bar(
-            x=[f'ປີ {y}'],
-            y=[round(dff[dff['semester'].str.startswith(str(y))]['grade_point'].mean(), 3)
-               if len(dff[dff['semester'].str.startswith(str(y))]) > 0 else 0],
-            name=f'ປີ {y}',
-            marker_color=colors[y-1], marker_line_width=0,
-            text=[round(dff[dff['semester'].str.startswith(str(y))]['grade_point'].mean(), 3)
-                  if len(dff[dff['semester'].str.startswith(str(y))]) > 0 else 0],
-            textposition='outside',
-            textfont=dict(size=12,color=db.TX)
-        ) for y in [1,2,3,4]])
-        fyr.update_layout(
-            plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
-            height=380, margin=dict(t=80,b=56,l=64,r=40), showlegend=False,
-            bargap=0.4,
-            hoverlabel=dict(bgcolor='white',font_size=13,bordercolor=db.BD))
-        fyr.update_xaxes(showgrid=False,zeroline=False,color=db.TX,title_text='ຊັ້ນປີ')
-        fyr.update_yaxes(showgrid=True,gridcolor='#EEF0F5',zeroline=False,
-                         title_text='GPA ສະເລ່ຍ',range=[0,4.0])
-
         # Donut
         high_n  = int((dff_gpa['cluster']=='ສູງ').sum())
         mid_n   = int((dff_gpa['cluster']=='ກາງ').sum())
@@ -519,4 +421,4 @@ def register_callbacks(app):
             ]),
         ]
 
-        return ft, fg, fgd, fsc, fyr, fd, cluster_stats
+        return ft, fg, fgd, fsc, fd, cluster_stats

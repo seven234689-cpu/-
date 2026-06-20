@@ -1,0 +1,207 @@
+/* ============================================================
+   mobile.css — Responsive stylesheet for CS Dashboard
+   วางไว้ใน assets/ โฟลเดอร์ Dash โหลดให้อัตโนมัติ
+   ============================================================ */
+
+/* ── Base ── */
+* { box-sizing: border-box; }
+
+/* ── Mobile Bottom Navigation ── */
+.mobile-nav {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 62px;
+    background: white;
+    border-top: 1px solid #E8EBF0;
+    z-index: 9999;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -2px 16px rgba(0,0,0,.10);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+.mobile-nav a {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 3px;
+    text-decoration: none; color: #94a3b8;
+    font-family: 'Noto Sans Lao', Arial, sans-serif;
+    padding: 6px 4px; border-radius: 12px;
+    transition: all .2s; flex: 1; min-width: 0;
+}
+.mobile-nav a.active {
+    color: #1565C0;
+    background: #EEF3FB;
+}
+.mobile-nav .nav-icon { font-size: 20px; line-height: 1; }
+.mobile-nav .nav-label {
+    font-size: 9px; font-weight: 600;
+    white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; max-width: 100%;
+}
+
+/* ── Mobile Top Header ── */
+.mobile-header {
+    display: none;
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 54px; background: white;
+    border-bottom: 1px solid #E8EBF0;
+    z-index: 9998; align-items: center;
+    padding: 0 14px; gap: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.mobile-header img {
+    width: 32px; height: 32px;
+    object-fit: contain; flex-shrink: 0;
+}
+.mobile-header .hd-title {
+    font-size: 13px; font-weight: 600;
+    color: #1E2A3A; flex: 1;
+    font-family: 'Noto Sans Lao', Arial, sans-serif;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mobile-header .hd-logout a {
+    font-size: 11px; color: #C62828;
+    text-decoration: none;
+    background: #FFEBEE; padding: 5px 10px;
+    border-radius: 8px; white-space: nowrap;
+    font-family: 'Noto Sans Lao', Arial, sans-serif;
+    font-weight: 600; border: 1px solid #FFCDD2;
+}
+
+/* ── Scrollbar slim ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-thumb {
+    background: #CBD5E0; border-radius: 2px;
+}
+
+/* ============================================================
+   RESPONSIVE BREAKPOINTS
+   ============================================================ */
+@media (max-width: 768px) {
+
+    /* Hide desktop sidebar */
+    #sidebar-slot > div { display: none !important; }
+
+    /* Remove left margin from page content */
+    #page-content > div {
+        margin-left: 0 !important;
+        padding-bottom: 70px !important;
+        padding-left: 0 !important;
+    }
+
+    /* Show mobile UI */
+    .mobile-nav { display: flex !important; }
+    .mobile-header { display: flex !important; }
+
+    /* Offset content for fixed header */
+    #page-content { padding-top: 54px !important; }
+
+    /* ── Dashboard page ── */
+    /* Page padding reduce */
+    div[style*="padding:28px 32px"],
+    div[style*="padding: 28px 32px"] {
+        padding: 12px !important;
+    }
+
+    /* Grid 2-col → 1-col */
+    div[style*="grid-template-columns:1fr 1fr"],
+    div[style*="gridTemplateColumns:1fr 1fr"],
+    div[style*="gridTemplateColumns:'1fr 1fr'"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Regression stat boxes 2-col on mobile */
+    div[style*="repeat(4,1fr)"],
+    div[style*="repeat(4, 1fr)"] {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
+
+    /* KPI cards 3-per-row on mobile */
+    div[style*="minWidth:110px"] {
+        min-width: calc(33% - 8px) !important;
+        flex: 1 1 calc(33% - 8px) !important;
+    }
+
+    /* Chart container scrollable */
+    .js-plotly-plot {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    .plot-container.plotly {
+        width: 100% !important;
+    }
+
+    /* Tables scroll horizontal */
+    .dash-table-container {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Fix iOS input zoom */
+    input[type=text],
+    input[type=email],
+    input[type=password],
+    input[type=number],
+    textarea, select {
+        font-size: 16px !important;
+    }
+
+    /* Search page adjustments */
+    div[style*="padding:24px"],
+    div[style*="padding: 24px"] {
+        padding: 12px !important;
+    }
+
+    /* Predict page */
+    div[style*="maxWidth:600px"],
+    div[style*="max-width:600px"] {
+        max-width: 100% !important;
+    }
+
+    /* Admin page */
+    div[style*="padding:20px"],
+    div[style*="padding: 20px"] {
+        padding: 12px !important;
+    }
+
+    /* Buttons full width on mobile */
+    button[style*="padding:10px 24px"] {
+        width: 100% !important;
+        margin-top: 8px !important;
+    }
+
+    /* Card padding reduce */
+    div[style*="padding:24px 26px"],
+    div[style*="padding: 24px 26px"] {
+        padding: 14px 12px !important;
+    }
+
+    /* Header title size */
+    div[style*="fontSize:22px"],
+    div[style*="font-size:22px"] {
+        font-size: 18px !important;
+    }
+
+    /* Login card responsive */
+    div[style*="maxWidth:420px"],
+    div[style*="max-width:420px"] {
+        max-width: calc(100vw - 32px) !important;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+    /* KPI cards 2-per-row */
+    div[style*="minWidth:110px"] {
+        min-width: calc(50% - 6px) !important;
+        flex: 1 1 calc(50% - 6px) !important;
+    }
+    /* Regression boxes 1-col */
+    div[style*="repeat(4,1fr)"],
+    div[style*="repeat(4, 1fr)"] {
+        grid-template-columns: 1fr 1fr !important;
+    }
+    /* Nav labels hide on very small */
+    .mobile-nav .nav-label { font-size: 8px; }
+}

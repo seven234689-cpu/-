@@ -1,13 +1,14 @@
-# db.py — Database + Design Tokens (Clean Professional Theme)
-
 import pandas as pd
 import numpy as np
 import sqlalchemy
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from dash import html
-
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 HOST     = os.environ.get("DB_HOST", "localhost")
 PORT     = int(os.environ.get("DB_PORT", 3306))
 USER     = os.environ.get("DB_USER", "root")
@@ -19,9 +20,16 @@ engine = sqlalchemy.create_engine(
 )
 sem_order = ["1/I","1/II","2/I","2/II","3/I","3/II","4/I","4/II"]
 
+MAJOR_MAP = {
+    137: 'ວິທະຍາສາດຄອມພິວເຕີ',
+    144: 'ການພັດທະນາເວັບໄຊ',
+    149: 'ການພັດທະນາໂປຣແກຣມຄອມພິວເຕີ',
+}
+
+def credit_to_major(total_credit):
+    return MAJOR_MAP.get(int(total_credit), 'ບໍ່ລະບຸ')
 
 def reload_data():
-    """โหลดข้อมูลใหม่จาก MySQL — เรียกหลัง import ไฟล์"""
     global df_student, df_subject, df_score, df, df_gpa
     global total, avgGPA, frate, high, mid, risk, male, female, total_subj
     global trend_all, trend_g, gd, subj_avg, hm_df, hp, km, sc_fit, CC, lm
@@ -30,15 +38,35 @@ def reload_data():
     df_subject = pd.read_sql("SELECT * FROM subject", engine)
     df_score   = pd.read_sql("SELECT * FROM score",   engine)
 
+    # ── กรณี DB ว่างเปล่า ──
+    if len(df_student) == 0 or len(df_score) == 0:
+        df = pd.DataFrame(columns=['student_id','student_code','gender','major',
+                                   'subject_id','subject_code','subject_name',
+                                   'score_id','semester','grade','grade_point','sem_order'])
+        df_gpa = pd.DataFrame(columns=['student_id','student_code','gender','gpa','cluster'])
+        CC = {'ສູງ':'#2E7D32','ກາງ':'#1565C0','ສ່ຽງ':'#C62828'}
+        sc_fit = StandardScaler()
+        km = KMeans(n_clusters=3, random_state=42, n_init=10)
+        lm = {}
+        total=0; avgGPA=0.0; frate=0.0; high=0; mid=0; risk=0
+        male=0; female=0; total_subj=0
+        trend_all = pd.DataFrame(columns=['semester','sem_order','avg_gpa'])
+        trend_g   = pd.DataFrame(columns=['semester','sem_order','gender','avg_gpa'])
+        gd = pd.DataFrame({'grade':['A','B+','B','C+','C','D+','D','F'],'count':[0]*8})
+        subj_avg  = pd.DataFrame(columns=['subject_code','subject_name','avg_gp','label'])
+        hm_df     = pd.DataFrame(columns=['subject_code','semester','v'])
+        hp        = pd.DataFrame()
+        return
+
     grade_map = {'A':4.0,'B+':3.5,'B':3.0,'C+':2.5,'C':2.0,'D+':1.5,'D':1.0,'F':0.0}
     df_score['grade_point'] = df_score['grade'].map(grade_map)
 
     df = (df_score
           .merge(df_student, on='student_id', how='left')
           .merge(df_subject, on='subject_id', how='left'))
-    df = df[df['grade_point'].notna()]
+    # ແກ້ໄຂ: ເກັບ F ໄວ້ດ້ວຍ
+    df = df[df['grade'].isin(grade_map.keys())]
 
-    sem_order = ['1/I','1/II','2/I','2/II','3/I','3/II','4/I','4/II']
     df['sem_order'] = df['semester'].apply(
         lambda x: sem_order.index(x) if x in sem_order else 99)
     df = df[df['sem_order'] != 99]
@@ -47,25 +75,52 @@ def reload_data():
                 .mean().reset_index(name='gpa'))
     df_gpa['gpa'] = df_gpa['gpa'].round(3)
 
-    sc_fit = StandardScaler()
-    X = sc_fit.fit_transform(df_gpa[['gpa']].values)
-    km = KMeans(n_clusters=3, random_state=42, n_init=10)
-    df_gpa['cn'] = km.fit_predict(X)
-    ci = np.argsort(sc_fit.inverse_transform(km.cluster_centers_).flatten())
-    lm = {ci[0]:'ສ່ຽງ', ci[1]:'ກາງ', ci[2]:'ສູງ'}
-    df_gpa['cluster'] = df_gpa['cn'].map(lm)
+    if 'major' in df_student.columns:
+        df_gpa = df_gpa.merge(
+            df_student[['student_id','major']], on='student_id', how='left')
+
+    # ── กรณี df_gpa ว่าง ──
+    if len(df_gpa) == 0:
+        CC = {'ສູງ':'#2E7D32','ກາງ':'#1565C0','ສ່ຽງ':'#C62828'}
+        sc_fit = StandardScaler()
+        km = KMeans(n_clusters=3, random_state=42, n_init=10)
+        lm = {}
+        df_gpa['cluster'] = pd.Series(dtype=str)
+        total=0; avgGPA=0.0; frate=0.0; high=0; mid=0; risk=0
+        male=0; female=0; total_subj=0
+        trend_all = pd.DataFrame(columns=['semester','sem_order','avg_gpa'])
+        trend_g   = pd.DataFrame(columns=['semester','sem_order','gender','avg_gpa'])
+        gd = pd.DataFrame({'grade':['A','B+','B','C+','C','D+','D','F'],'count':[0]*8})
+        subj_avg  = pd.DataFrame(columns=['subject_code','subject_name','avg_gp','label'])
+        hm_df     = pd.DataFrame(columns=['subject_code','semester','v'])
+        hp        = pd.DataFrame()
+        return
+
+    if len(df_gpa) >= 3:
+        sc_fit = StandardScaler()
+        X = sc_fit.fit_transform(df_gpa[['gpa']].values)
+        km = KMeans(n_clusters=3, random_state=42, n_init=10)
+        df_gpa['cn'] = km.fit_predict(X)
+        ci = np.argsort(sc_fit.inverse_transform(km.cluster_centers_).flatten())
+        lm = {ci[0]:'ສ່ຽງ', ci[1]:'ກາງ', ci[2]:'ສູງ'}
+        df_gpa['cluster'] = df_gpa['cn'].map(lm)
+    else:
+        sc_fit = StandardScaler()
+        km = KMeans(n_clusters=3, random_state=42, n_init=10)
+        lm = {}
+        df_gpa['cluster'] = 'ກາງ'
 
     CC = {'ສູງ':'#2E7D32','ກາງ':'#1565C0','ສ່ຽງ':'#C62828'}
 
     total      = len(df_gpa)
-    avgGPA     = round(df_gpa['gpa'].mean(), 2)
-    frate      = round(df[df['grade']=='F'].shape[0]/len(df)*100, 1)
+    avgGPA     = round(df_gpa['gpa'].mean(), 2) if len(df_gpa) > 0 else 0.0
+    frate      = round(df[df['grade']=='F'].shape[0]/len(df)*100, 1) if len(df) > 0 else 0
     high       = int((df_gpa['cluster']=='ສູງ').sum())
     mid        = int((df_gpa['cluster']=='ກາງ').sum())
     risk       = int((df_gpa['cluster']=='ສ່ຽງ').sum())
     male       = int((df_student['gender']=='M').sum())
     female     = int((df_student['gender']=='F').sum())
-    total_subj = df['subject_code'].nunique()
+    total_subj = df['subject_code'].nunique() if len(df) > 0 else 0
 
     trend_all = (df.groupby(['semester','sem_order'])['grade_point']
                    .mean().reset_index(name='avg_gpa').sort_values('sem_order'))
@@ -87,7 +142,6 @@ def reload_data():
     hp = hm_df.pivot(index='subject_code', columns='semester', values='v')
     hp = hp.reindex(columns=[s for s in sem_order if s in hp.columns])
 
-# โหลดครั้งแรกตอนเปิดระบบ
 reload_data()
 
 # ── Design Tokens ──────────────────────────────────────────

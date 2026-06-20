@@ -24,19 +24,7 @@ layout = html.Div(style={'padding': '28px 32px', 'background': db.PAGE, 'minHeig
             style={'fontSize': '13px', 'marginBottom': '12px'}
         ),
 
-        # ── Filter ສະເພາະພາກ ─────────────────────────────────
-        html.Div(style={'marginBottom': '16px'}, children=[
-            html.Label('ກັ່ນຕອງຕາມພາກ:',
-                       style={**LAO, 'fontSize': '12px', 'fontWeight': '600',
-                              'color': db.TX, 'display': 'block', 'marginBottom': '6px'}),
-            dcc.Dropdown(
-                id='search-sem-only',
-                options=[{'label': 'ທຸກພາກ', 'value': 'all'}] +
-                        [{'label': s, 'value': s} for s in db.sem_order],
-                value='all', clearable=False,
-                style={'fontSize': '13px', 'maxWidth': '220px'}
-            ),
-        ]),
+        html.Div(id='search-sem-only', style={'display':'none'}),
 
         html.Div(id='search-result', style={'marginTop': '8px'})
     ]),
@@ -57,9 +45,9 @@ def register_callbacks(app):
     @app.callback(
         Output('search-result', 'children'),
         Input('search-dd', 'value'),
-        Input('search-sem-only', 'value'),
     )
-    def show(code, sem_only):
+    def show(code):
+        sem_only = 'all'
         sem_from = '1/I'
         sem_to   = '4/II'
         if not code:
@@ -76,9 +64,10 @@ def register_callbacks(app):
         if stu.empty:
             return html.Div('ບໍ່ພົບຂໍ້ມູນ', style={**LAO, 'color': db.RED})
 
-        gen_v = 'ຊາຍ' if stu.iloc[0]['gender'] == 'M' else 'ຍິງ'
-        cl_v  = stu.iloc[0]['cluster']
-        cl_c  = db.CC.get(cl_v, '#546078')
+        gen_v   = 'ຊາຍ' if stu.iloc[0]['gender'] == 'M' else 'ຍິງ'
+        cl_v    = stu.iloc[0]['cluster']
+        cl_c    = db.CC.get(cl_v, '#546078')
+        major_v = stu.iloc[0]['major'] if 'major' in stu.columns and stu.iloc[0].get('major') else 'ບໍ່ລະບຸ'
 
         # ── ດຶງຂໍ້ມູນທຸກພາກ ──────────────────────────────────
         sc_all = db.df[db.df['student_code'] == code].copy()
@@ -174,8 +163,8 @@ def register_callbacks(app):
                 'background': db.PAGE, 'borderRadius': '10px', 'padding': '12px 14px',
                 'textAlign': 'center', 'flex': '1', 'border': f'1px solid {db.BD}', 'minWidth': '80px'
             }, children=[
-                html.Div(str(v), style={'fontSize': '20px', 'fontWeight': '700', 'color': c}),
-                html.Div(l, style={**LAO, 'fontSize': '10px', 'color': db.TX, 'marginTop': '4px'})
+                html.Div(str(v), style={'fontSize': '24px', 'fontWeight': '700', 'color': c}),
+                html.Div(l, style={**LAO, 'fontSize': '12px', 'color': db.TX, 'marginTop': '4px'})
             ])
 
         kpi_label = f'GPA ({range_label})' if sem_only == 'all' else f'GPA ({sem_only})'
@@ -193,14 +182,14 @@ def register_callbacks(app):
                     'background':db.PAGE,'borderRadius':'10px','padding':'12px 14px',
                     'flex':'2','border':f'1px solid {db.BD}','minWidth':'150px'
                 }, children=[
-                    html.Div(code, style={**LAO,'fontSize':'13px','fontWeight':'700','color':db.TX2}),
-                    html.Div(gen_v, style={**LAO,'fontSize':'11px','color':db.TX,'marginTop':'2px'}),
+                    html.Div(code, style={**LAO,'fontSize':'17px','fontWeight':'700','color':db.TX2}),
+                    html.Div(f'{gen_v} · {major_v}', style={**LAO,'fontSize':'14px','fontWeight':'600','color':db.TX2,'marginTop':'4px'}),
                     html.Div(style={'marginTop':'6px'}, children=[
                         html.Span(f'ກຸ່ມ {cl_v}', style={
                             **LAO,
                             'background':f'{cl_c}15','color':cl_c,
                             'padding':'2px 10px','borderRadius':'20px',
-                            'fontSize':'11px','fontWeight':'600',
+                            'fontSize':'13px','fontWeight':'700',
                             'border':f'1px solid {cl_c}30'
                         })
                     ])
@@ -258,7 +247,7 @@ def register_callbacks(app):
                     {'if':{'filter_query':'{ເກຣດ} = "A"'},
                      'backgroundColor':'#E8F5E9','color':'#1B5E20','fontWeight':'700'},
                     {'if':{'filter_query':'{ເກຣດ} = "B+"'},
-                     'backgroundColor':'#E3F2FD','color':'#0D47A1','fontWeight':'600'},
+                     'backgroundColor':'#E3F2FD','color':'#0D47A1','fontWeight':'600'},  
                 ],
                 page_size=15, sort_action='native', style_as_list_view=True,
             )
