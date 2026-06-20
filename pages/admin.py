@@ -338,7 +338,7 @@ def register_callbacks(app):
             import openpyxl
             _, cs = contents.split(',')
             decoded = base64.b64decode(cs)
-            wb_in = openpyxl.load_workbook(io.BytesIO(decoded), read_only=True)
+            wb_in = openpyxl.load_workbook(io.BytesIO(decoded), read_only=True, data_only=True)
             gm = {'A':4.0,'B+':3.5,'B':3.0,'C+':2.5,'C':2.0,'D+':1.5,'D':1.0,'F':0.0}
             new_s=0; new_sc=0; new_sub=0; skip=0; dup_students=[]; dup_subjects=[]
             is_=[]; ib_=[]; ic_=[]
@@ -352,16 +352,25 @@ def register_callbacks(app):
                 ms = int(pd.read_sql("SELECT COALESCE(MAX(student_id),0) AS m FROM student",conn)['m'].iloc[0])
                 mb = int(pd.read_sql("SELECT COALESCE(MAX(subject_id),0) AS m FROM subject",conn)['m'].iloc[0])
                 mc = int(pd.read_sql("SELECT COALESCE(MAX(score_id),0) AS m FROM score",conn)['m'].iloc[0])
+                MAJOR_MAP = {137:'ວິທະຍາສາດຄອມພິວເຕີ',144:'ການພັດທະນາເວັບໄຊ',149:'ການພັດທະນາໂປຣແກຣມຄອມພິວເຕີ'}
                 for sn in wb_in.sheetnames:
                     ws = wb_in[sn]; rows = list(ws.iter_rows(values_only=True))
                     if len(rows)<4: continue
                     sids=[str(v).strip() for v in rows[1][5:] if v is not None]
                     gens=list(rows[0][5:5+len(sids)])
+                    # detect major from CGPA row
+                    maj = 'ບໍ່ລະບຸ'
+                    for row in rows:
+                        if row[3] and str(row[3]).strip()=='CGPA':
+                            val = row[4]
+                            if val and isinstance(val,(int,float)):
+                                maj = MAJOR_MAP.get(int(val),'ບໍ່ລະບຸ')
+                            break
                     for i,sid in enumerate(sids):
                         if sid not in sm:
                             ms+=1; g=str(gens[i]).strip() if i<len(gens) and gens[i] else 'M'
-                            gv='F' if g=='ນາງ' else 'M'
-                            is_.append({'student_id':ms,'student_code':sid,'gender':gv})
+                            gv='F' if any(x in g for x in ['ນາງ','ສນ','ສາມະເນນ']) else 'M'
+                            is_.append({'student_id':ms,'student_code':sid,'gender':gv,'major':maj})
                             sm[sid]=ms; new_s+=1
                         else:
                             if sid not in dup_students: dup_students.append(sid)
@@ -465,7 +474,7 @@ def register_callbacks(app):
             pending = json.loads(pending_json)
             is_ = pending['is_']; ib_ = pending['ib_']; ic_ = pending['ic_']
             with db.engine.connect() as conn:
-                if is_: conn.execute(sa.text("INSERT INTO student(student_id,student_code,gender) VALUES(:student_id,:student_code,:gender)"),is_)
+                if is_: conn.execute(sa.text("INSERT INTO student(student_id,student_code,gender,major) VALUES(:student_id,:student_code,:gender,:major)"),is_)
                 if ib_: conn.execute(sa.text("INSERT INTO subject(subject_id,subject_code,subject_name) VALUES(:subject_id,:subject_code,:subject_name)"),ib_)
                 if ic_: conn.execute(sa.text("INSERT INTO score(score_id,student_id,subject_id,semester,grade,grade_point) VALUES(:score_id,:student_id,:subject_id,:semester,:grade,:grade_point)"),ic_)
                 conn.commit()
@@ -493,7 +502,7 @@ def register_callbacks(app):
         code = code.strip()
         try:
             with db.engine.connect() as conn:
-                ex = pd.read_sql(f"SELECT student_id FROM student WHERE student_code='{code}'",conn)
+                ex = pd.read_sql(sa.text("SELECT student_id FROM student WHERE student_code=:c"),conn,params={'c':code})
                 if len(ex)>0: return warn_box(f'ລະຫັດ "{code}" ມີຢູ່ແລ້ວ')
                 nid = int(pd.read_sql("SELECT COALESCE(MAX(student_id),0)+1 AS n FROM student",conn)['n'].iloc[0])
                 conn.execute(sa.text("INSERT INTO student(student_id,student_code,gender) VALUES(:i,:c,:g)"),
@@ -512,12 +521,12 @@ def register_callbacks(app):
         code = code.strip()
         try:
             with db.engine.connect() as conn:
-                ex = pd.read_sql(f"SELECT student_id FROM student WHERE student_code='{code}'",conn)
+                ex = pd.read_sql(sa.text("SELECT student_id FROM student WHERE student_code=:c"),conn,params={'c':code})
                 if len(ex)==0: return warn_box(f'ບໍ່ພົບລະຫັດ "{code}" ໃນລະບົບ')
                 sid = int(ex['student_id'].iloc[0])
-                sc_count = int(pd.read_sql(f"SELECT COUNT(*) AS c FROM score WHERE student_id={sid}",conn)['c'].iloc[0])
-                conn.execute(sa.text(f"DELETE FROM score WHERE student_id={sid}"))
-                conn.execute(sa.text(f"DELETE FROM student WHERE student_id={sid}"))
+                sc_count = int(pd.read_sql(sa.text("SELECT COUNT(*) AS c FROM score WHERE student_id=:i"),conn,params={'i':sid})['c'].iloc[0])
+                conn.execute(sa.text("DELETE FROM score WHERE student_id=:i"),{'i':sid})
+                conn.execute(sa.text("DELETE FROM student WHERE student_id=:i"),{'i':sid})
                 conn.commit()
             db.reload_data()
             return ok_box(f'ລຶບ "{code}" ສຳເລັດ', f'ລຶບຄະແນນທັງໝົດ {sc_count} ແຖວ')
@@ -532,7 +541,7 @@ def register_callbacks(app):
         code=code.strip(); name=name.strip()
         try:
             with db.engine.connect() as conn:
-                ex = pd.read_sql(f"SELECT subject_id FROM subject WHERE subject_code='{code}'",conn)
+                ex = pd.read_sql(sa.text("SELECT subject_id FROM subject WHERE subject_code=:c"),conn,params={'c':code})
                 if len(ex)>0: return warn_box(f'ວິຊາ "{code}" ມີຢູ່ແລ້ວ')
                 nid = int(pd.read_sql("SELECT COALESCE(MAX(subject_id),0)+1 AS n FROM subject",conn)['n'].iloc[0])
                 conn.execute(sa.text("INSERT INTO subject(subject_id,subject_code,subject_name) VALUES(:i,:c,:n)"),
@@ -551,12 +560,12 @@ def register_callbacks(app):
         code = code.strip()
         try:
             with db.engine.connect() as conn:
-                ex = pd.read_sql(f"SELECT subject_id FROM subject WHERE subject_code='{code}'",conn)
+                ex = pd.read_sql(sa.text("SELECT subject_id FROM subject WHERE subject_code=:c"),conn,params={'c':code})
                 if len(ex)==0: return warn_box(f'ບໍ່ພົບວິຊາ "{code}" ໃນລະບົບ')
                 bid = int(ex['subject_id'].iloc[0])
-                sc_count = int(pd.read_sql(f"SELECT COUNT(*) AS c FROM score WHERE subject_id={bid}",conn)['c'].iloc[0])
-                conn.execute(sa.text(f"DELETE FROM score WHERE subject_id={bid}"))
-                conn.execute(sa.text(f"DELETE FROM subject WHERE subject_id={bid}"))
+                sc_count = int(pd.read_sql(sa.text("SELECT COUNT(*) AS c FROM score WHERE subject_id=:i"),conn,params={'i':bid})['c'].iloc[0])
+                conn.execute(sa.text("DELETE FROM score WHERE subject_id=:i"),{'i':bid})
+                conn.execute(sa.text("DELETE FROM subject WHERE subject_id=:i"),{'i':bid})
                 conn.commit()
             db.reload_data()
             return ok_box(f'ລຶບວິຊາ "{code}" ສຳເລັດ', f'ລຶບຄະແນນທັງໝົດ {sc_count} ແຖວ')
@@ -574,15 +583,17 @@ def register_callbacks(app):
         gp = gm[grade]
         try:
             with db.engine.connect() as conn:
-                s = pd.read_sql(f"SELECT student_id FROM student WHERE student_code='{stu_code.strip()}'",conn)
+                s = pd.read_sql(sa.text("SELECT student_id FROM student WHERE student_code=:c"),conn,params={'c':stu_code.strip()})
                 if len(s)==0: return warn_box(f'ບໍ່ພົບນ.ສ "{stu_code}"')
-                b = pd.read_sql(f"SELECT subject_id FROM subject WHERE subject_code='{sub_code.strip()}'",conn)
+                b = pd.read_sql(sa.text("SELECT subject_id FROM subject WHERE subject_code=:c"),conn,params={'c':sub_code.strip()})
                 if len(b)==0: return warn_box(f'ບໍ່ພົບວິຊາ "{sub_code}"')
                 sid = int(s['student_id'].iloc[0]); bid = int(b['subject_id'].iloc[0])
-                ex = pd.read_sql(f"SELECT score_id,grade FROM score WHERE student_id={sid} AND subject_id={bid} AND semester='{sem}'",conn)
+                ex = pd.read_sql(sa.text("SELECT score_id,grade FROM score WHERE student_id=:sid AND subject_id=:bid AND semester=:sem"),
+                                  conn,params={'sid':sid,'bid':bid,'sem':sem})
                 if len(ex)==0: return warn_box(f'ບໍ່ພົບຄະແນນ {stu_code} / {sub_code} / {sem}')
                 old_grade = ex['grade'].iloc[0]
-                conn.execute(sa.text(f"UPDATE score SET grade='{grade}', grade_point={gp} WHERE student_id={sid} AND subject_id={bid} AND semester='{sem}'"))
+                conn.execute(sa.text("UPDATE score SET grade=:g, grade_point=:gp WHERE student_id=:sid AND subject_id=:bid AND semester=:sem"),
+                             {'g':grade,'gp':gp,'sid':sid,'bid':bid,'sem':sem})
                 conn.commit()
             db.reload_data()
             return ok_box(f'ແກ້ໄຂເກຣດ {stu_code} · {sub_code} · {sem} ສຳເລັດ',

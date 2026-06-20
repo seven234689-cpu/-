@@ -1,10 +1,11 @@
 # auth.py — Database Authentication Helper
 import hashlib
+import os
 import sqlalchemy as sa
 import db
 
-# ใช้ SALT เดิมที่ตรงกับตอน register ครั้งแรก
-SALT = "cs_dashboard_2025"
+# ใช้ SALT เดิมที่ตรงกับตอน register ครั้งแรก — เก็บไว้ใน .env (PASSWORD_SALT)
+SALT = os.environ.get("PASSWORD_SALT", "cs_dashboard_2025")
 
 def _hash(pw):
     return hashlib.sha256((pw + SALT).encode()).hexdigest()

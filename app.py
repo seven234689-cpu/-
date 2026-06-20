@@ -1,12 +1,79 @@
 # app.py — CS Dashboard · Main App with Auth Routing
+import os
 from dash import Dash, dcc, html, Input, Output, State, no_update
 from flask import session as flask_session, redirect
 import db
 
 app = Dash(__name__, suppress_callback_exceptions=True)
 server = app.server
-server.secret_key = "cs_nuol_secret_2025"
-app.title = "ລະບົບວິເຄາະຜົນການຮຽນ CS"
+server.secret_key = os.environ.get("FLASK_SECRET_KEY", "cs_nuol_secret_2025")
+
+app.index_string = """<!DOCTYPE html>
+<html lang="lo">
+  <head>
+    {%metas%}
+    <title>{%title%}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <link rel="icon" href="/assets/Logo_NUOL-ORiginal.png" type="image/png">
+    
+    {%css%}
+    
+<style>
+* { box-sizing: border-box; }
+.mobile-nav {
+    display: none; position: fixed;
+    bottom: 0; left: 0; right: 0; height: 62px;
+    background: white; border-top: 1px solid #E8EBF0;
+    z-index: 999; justify-content: space-around; align-items: center;
+    box-shadow: 0 -2px 16px rgba(0,0,0,.08);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+.mobile-nav a {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    text-decoration: none; color: #94a3b8;
+    font-family: 'Noto Sans Lao', Arial, sans-serif;
+    padding: 6px 8px; border-radius: 10px; transition: all .2s; flex: 1;
+}
+.mobile-nav a.active { color: #1565C0; background: #EEF3FB; }
+.mobile-nav .nav-icon { font-size: 22px; line-height: 1; }
+.mobile-nav .nav-label { font-size: 9px; font-weight: 600; }
+.mobile-header {
+    display: none; position: fixed; top: 0; left: 0; right: 0;
+    height: 54px; background: white; border-bottom: 1px solid #E8EBF0;
+    z-index: 998; align-items: center; padding: 0 16px; gap: 10px;
+    box-shadow: 0 1px 6px rgba(0,0,0,.06);
+}
+.mobile-header img { width: 34px; height: 34px; object-fit: contain; }
+.mobile-header .hd-title {
+    font-size: 13px; font-weight: 600; color: #1E2A3A;
+    font-family: 'Noto Sans Lao', Arial, sans-serif; flex: 1;
+}
+.mobile-header .hd-logout a {
+    font-size: 11px; color: #C62828; text-decoration: none;
+    background: #FFEBEE; padding: 4px 10px; border-radius: 8px;
+    font-family: 'Noto Sans Lao', Arial, sans-serif; font-weight: 600;
+}
+@media (max-width: 768px) {
+    #sidebar-slot > div { display: none !important; }
+    #page-content > div { margin-left: 0 !important; padding-bottom: 70px !important; }
+    .mobile-nav { display: flex !important; }
+    .mobile-header { display: flex !important; }
+    #page-content { padding-top: 54px; }
+    .dash-table-container { overflow-x: auto !important; }
+    input { font-size: 16px !important; }
+}
+</style>
+
+  </head>
+  <body>
+    {%app_entry%}
+    <footer>{%config%}{%scripts%}{%renderer%}</footer>
+  </body>
+</html>"""
+
+app.title = "ລະບົບວິເຄາະແນວໂນ້ມຜົນການຮຽນ ພາກວິຊາວິທະຍາສາດຄອມພິວເຕີ"
 
 # ── Sidebar (white, for dashboard pages) ──────────────────────────────────────
 NAV = [
@@ -139,9 +206,34 @@ def router(path):
         if not flask_session.get('email'):
             return login_page.layout, html.Div()
         # มี session → แสดงหน้า
-        page = html.Div(style={'marginLeft':'200px','flex':'1','minWidth':'0',
-                                'background':'#F5F6FA','minHeight':'100vh'}, children=[
-            dashboard_pages[path]
+        # Mobile bottom nav
+        nav_items = [
+            ('/dashboard', '📊', 'Dashboard'),
+            ('/search',    '🔍', 'ຄົ້ນຫາ'),
+            ('/predict',   '📈', 'ທຳນາຍ'),
+            ('/admin',     '⚙️', 'Admin'),
+        ]
+        mobile_nav = html.Div(className='mobile-nav', children=[
+            html.A([
+                html.Span(icon, className='nav-icon'),
+                html.Span(label, className='nav-label'),
+            ], href=href, className='active' if href == path else '')
+            for href, icon, label in nav_items
+        ])
+        mobile_header = html.Div(className='mobile-header', children=[
+            html.Img(src='/assets/Logo_NUOL-ORiginal.png'),
+            html.Div('ລະບົບວິເຄາະຜົນການຮຽນ', className='hd-title'),
+            html.Div(className='hd-logout', children=[
+                html.A('ອອກ', href='/do-logout')
+            ]),
+        ])
+        page = html.Div(style={
+            'marginLeft':'200px','flex':'1','minWidth':'0',
+            'background':'#F5F6FA','minHeight':'100vh'
+        }, children=[
+            mobile_header,
+            dashboard_pages[path],
+            mobile_nav,
         ])
         return page, sidebar(path)
 
