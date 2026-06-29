@@ -2,4 +2,4 @@
 __pycache__/
 *.pyc
 models/*.pkl
-backups/*.xlsx
+backups/*.xlsxdesktop.ini
