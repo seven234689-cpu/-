@@ -30,7 +30,7 @@ def main():
     print('   RMSE ແຍກຕາມພາກຮຽນ (1/I -> ພາກນັ້ນ):')
     per_sem = predictor.evaluate_real_scenario(db.df, db.df_student, db.sem_order)
     for sem_name, m in per_sem.items():
-        if sem_name == 'n_students':
+        if not isinstance(m, dict):
             continue
         print(f'   {sem_name:8} RMSE={m["rmse"]:.4f}  MAE={m["mae"]:.4f}')
     print('=' * 48)

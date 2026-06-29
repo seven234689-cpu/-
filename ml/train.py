@@ -8,32 +8,34 @@ import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import GridSearchCV, KFold
-from sklearn.multioutput import MultiOutputRegressor
 
-from ml.data_prep import FEATURE_COLS, TARGET_COLS, clip_gpa
+from ml.data_prep import clip_gpa, split_xy_stage
 
 DEFAULT_MODEL_PATH = os.path.join(
     os.path.dirname(__file__), '..', 'models', 'gpa_predictor.pkl'
 )
 
-
+# native multi-output (no MultiOutputRegressor wrapper) — lets each tree split
+# share information across all 7 target semesters, found to beat the wrapped
+# per-target approach in CV (RF 0.81 vs 0.83, XGB 0.82 vs 0.83 RMSE)
 RF_PARAM_GRID = {
-    'estimator__n_estimators': [100, 200],
-    'estimator__max_depth': [6, 12, None],
-    'estimator__min_samples_leaf': [1, 3, 5],
+    'n_estimators': [100, 200],
+    'max_depth': [4, 6, 8],
+    'min_samples_leaf': [3, 5, 8],
+    'max_features': [0.7, 1.0],
 }
 
 XGB_PARAM_GRID = {
-    'estimator__n_estimators': [100, 200],
-    'estimator__max_depth': [3, 6],
-    'estimator__learning_rate': [0.05, 0.08, 0.15],
+    'n_estimators': [50, 100, 150],
+    'max_depth': [2, 3, 4],
+    'learning_rate': [0.05, 0.08, 0.1],
 }
 
 
 def _make_random_forest(**params):
     base = dict(random_state=42, n_jobs=1)
     base.update(params)
-    return MultiOutputRegressor(RandomForestRegressor(**base), n_jobs=1)
+    return RandomForestRegressor(**base)
 
 
 def _make_xgboost(**params):
@@ -44,10 +46,11 @@ def _make_xgboost(**params):
 
     base = dict(
         random_state=42, n_jobs=1, objective='reg:squarederror',
-        subsample=0.9, colsample_bytree=0.9,
+        subsample=1.0, colsample_bytree=0.9,
+        multi_strategy='multi_output_tree', tree_method='hist',
     )
     base.update(params)
-    return MultiOutputRegressor(XGBRegressor(**base), n_jobs=1)
+    return XGBRegressor(**base)
 
 
 def _tune(factory, param_grid, X, y, n_splits=3):
@@ -60,7 +63,7 @@ def _tune(factory, param_grid, X, y, n_splits=3):
         scoring='neg_root_mean_squared_error', n_jobs=1,
     )
     search.fit(X, y)
-    return {k.replace('estimator__', ''): v for k, v in search.best_params_.items()}
+    return dict(search.best_params_)
 
 
 def _cross_val_rmse(model_factory, X, y, n_splits=5):
@@ -100,20 +103,37 @@ def train_models(X, y):
     return trained
 
 
-def save_artifact(trained, path=None, meta=None):
+def train_all_stages(table, max_known=7):
+    """
+    Train one model set per 'known up to semester k' scenario (k = 1..max_known),
+    so predictions can use whatever real semesters are already on record instead
+    of always forecasting from semester 1 alone — accuracy improves stage by
+    stage as more real (not predicted) data becomes available.
+    """
+    stages = {}
+    for k in range(1, max_known + 1):
+        X, y, feature_cols, target_cols = split_xy_stage(table, k)
+        trained = train_models(X, y)
+        stages[k] = {
+            'feature_cols': feature_cols,
+            'target_cols': target_cols,
+            'models': {name: info['model'] for name, info in trained.items()},
+            'metrics': {
+                name: {'rmse': info['rmse'], 'params': info.get('params', {})}
+                for name, info in trained.items()
+            },
+        }
+    return stages
+
+
+def save_artifact(stages, path=None, meta=None):
     path = path or DEFAULT_MODEL_PATH
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
 
     payload = {
-        'version': 1,
+        'version': 2,
         'trained_at': datetime.now(timezone.utc).isoformat(),
-        'feature_cols': FEATURE_COLS,
-        'target_cols': TARGET_COLS,
-        'models': {name: info['model'] for name, info in trained.items()},
-        'metrics': {
-            name: {'rmse': info['rmse'], 'params': info.get('params', {})}
-            for name, info in trained.items()
-        },
+        'stages': stages,
         'meta': meta or {},
     }
     joblib.dump(payload, path)

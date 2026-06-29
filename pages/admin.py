@@ -1,10 +1,54 @@
 from dash import html, dcc, Input, Output, State, dash_table, ctx, no_update
+from flask import session as flask_session
 import json
+import logging
+import os
+from datetime import datetime
 import base64, io, pandas as pd
 import sqlalchemy as sa
 import db
 
+logger = logging.getLogger(__name__)
+
 LAO = {'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif','fontSize':'13px'}
+
+GENERIC_ERR_MSG = 'ເກີດຂໍ້ຜິດພາດ ກະລຸນາລອງໃໝ່ ຫຼື ຕິດຕໍ່ຜູ້ດູແລລະບົບ'
+
+BACKUP_DIR = os.path.join(os.path.dirname(__file__), '..', 'backups')
+
+
+def backup_all_tables(reason='manual'):
+    """Dump student/subject/score to a timestamped Excel file before any
+    destructive operation, so data can be restored if something goes wrong."""
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    stamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    path = os.path.join(BACKUP_DIR, f'backup_{reason}_{stamp}.xlsx')
+    with pd.ExcelWriter(path, engine='openpyxl') as w:
+        db.df_student.to_excel(w, index=False, sheet_name='student')
+        db.df_subject.to_excel(w, index=False, sheet_name='subject')
+        db.df_score.to_excel(w, index=False, sheet_name='score')
+    return path
+
+
+def init_import_log_table():
+    with db.engine.connect() as conn:
+        conn.execute(sa.text("""
+            CREATE TABLE IF NOT EXISTS import_log (
+                id              INT AUTO_INCREMENT PRIMARY KEY,
+                imported_by     VARCHAR(255) NOT NULL,
+                filename        VARCHAR(255) NOT NULL,
+                n_students      INT NOT NULL DEFAULT 0,
+                n_subjects      INT NOT NULL DEFAULT 0,
+                n_scores        INT NOT NULL DEFAULT 0,
+                imported_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+        conn.commit()
+
+try:
+    init_import_log_table()
+except Exception as e:
+    print(f"[admin] {e}")
 
 def ok_box(msg, detail=None):
     return html.Div(style={'background':'#E8F5E9','borderRadius':'10px',
@@ -59,7 +103,8 @@ def tbl_style():
     }
 
 
-layout = html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':'100vh'}, children=[
+def layout():
+    return html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':'100vh'}, children=[
 
     html.Div(style={'marginBottom':'24px'}, children=[
         html.Div('Admin Panel', style={'fontSize':'22px','fontWeight':'700','color':db.TX2}),
@@ -70,11 +115,11 @@ layout = html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':
 
     # KPI
     html.Div(style={'display':'flex','gap':'12px','marginBottom':'22px','flexWrap':'wrap'}, children=[
-        db.kpi_card(db.total,      'ນ.ສ ທັງໝົດ',  db.BLUE),
-        db.kpi_card(db.total_subj, 'ວິຊາ',          '#546078'),
-        db.kpi_card(db.male,       'ນ.ສ ຊາຍ',       db.BLUE),
-        db.kpi_card(db.female,     'ນ.ສ ຍິງ',       '#6A1B9A'),
-        db.kpi_card(db.risk,       'ກຸ່ມ ສ່ຽງ',      db.RED),
+        db.kpi_card(db.total,      'ນ.ສ ທັງໝົດ',  db.BLUE,   '/assets/grad.png'),
+        db.kpi_card(db.total_subj, 'ວິຊາ',          '#546078', '/assets/book.png'),
+        db.kpi_card(db.male,       'ນ.ສ ຊາຍ',       db.BLUE,   '/assets/male.png'),
+        db.kpi_card(db.female,     'ນ.ສ ຍິງ',       '#6A1B9A', '/assets/female.png'),
+        db.kpi_card(db.risk,       'ກຸ່ມ ສ່ຽງ',      db.RED,    '/assets/warning.png'),
     ]),
 
     # ── 1. Upload ────────────────────────────────────────────
@@ -92,7 +137,15 @@ layout = html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':
                 html.Div('ຂໍ້ມູນທີ່ຊ້ຳຈະຖືກຂ້າມໂດຍອັດຕະໂນມັດ',
                          style={**LAO,'color':'#90A4AE','marginTop':'4px','fontSize':'12px'}),
             ])),
-        html.Div(id='adm-upload-result', style={'marginTop':'14px'}),
+        dcc.Loading(
+            custom_spinner=html.Div(className='cs-spinner-backdrop', children=[
+                html.Div(className='cs-spinner-wrap', children=[
+                    html.Div(className='cs-spinner-ring'),
+                    html.Div('ກຳລັງວິເຄາະໄຟລ໌...', className='cs-spinner-text'),
+                ]),
+            ]),
+            children=[html.Div(id='adm-upload-result', style={'marginTop':'14px'})],
+        ),
 
         # Preview + Confirm/Cancel
         html.Div(id='adm-confirm-section', style={'display':'none'}, children=[
@@ -110,215 +163,281 @@ layout = html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':
                     'fontWeight':'600','cursor':'pointer',
                     'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'}),
             ]),
-            html.Div(id='adm-confirm-result', style={'marginTop':'12px'})
+            dcc.Loading(
+                custom_spinner=html.Div(className='cs-spinner-backdrop', children=[
+                    html.Div(className='cs-spinner-wrap', children=[
+                        html.Div(className='cs-spinner-ring'),
+                        html.Div('ກຳລັງບັນທຶກລົງຖານຂໍ້ມູນ...', className='cs-spinner-text'),
+                    ]),
+                ]),
+                children=[html.Div(id='adm-confirm-result', style={'marginTop':'12px'})],
+            ),
         ]),
         dcc.Store(id='adm-pending-data'),
     ]),
 
-    # ── 2. Add Student ───────────────────────────────────────
-    html.Div(style=db.card_style(db.GREEN), children=[
-        db.sec_title('➕ ເພີ່ມນັກສຶກສາໃໝ່'),
-        db.sec_sub('ປ້ອນລະຫັດ ແລະ ເພດ ແລ້ວກົດ "ບັນທຶກ"'),
-        html.Div(style={'display':'flex','gap':'12px','flexWrap':'wrap','alignItems':'flex-end'}, children=[
-            html.Div(style={'flex':'2','minWidth':'200px'}, children=[
-                lbl('ລະຫັດນັກສຶກສາ'),
-                dcc.Input(id='adm-code', type='text',
-                          placeholder='ເຊັ່ນ 205N0001.25', debounce=False, style=inp_s())
-            ]),
-            html.Div(style={'flex':'1','minWidth':'160px'}, children=[
-                lbl('ເພດ'),
-                dcc.Dropdown(id='adm-gender',
-                    options=[{'label':'ຊາຍ (Male)','value':'M'},
-                              {'label':'ຍິງ (Female)','value':'F'}],
-                    placeholder='ເລືອກ...', clearable=False, style={'fontSize':'13px'})
-            ]),
-            html.Div(style={'paddingBottom':'2px'}, children=[btn('ບັນທຶກ','adm-btn-add',db.GREEN)]),
-        ]),
-        html.Div(id='adm-add-result', style={'marginTop':'12px'})
-    ]),
-
-    # ── 3. Delete Student ────────────────────────────────────
-    html.Div(style=db.card_style(db.RED), children=[
-        db.sec_title('🗑 ລຶບນັກສຶກສາ'),
-        db.sec_sub('ລຶບນ.ສ ແລະ ຄະແນນທັງໝົດຂອງນ.ສ ຄົນນັ້ນອອກຈາກລະບົບ'),
-        html.Div(style={'display':'flex','gap':'12px','flexWrap':'wrap','alignItems':'flex-end'}, children=[
-            html.Div(style={'flex':'2','minWidth':'200px'}, children=[
-                lbl('ລະຫັດນັກສຶກສາທີ່ຕ້ອງການລຶບ'),
-                dcc.Input(id='adm-del-code', type='text',
-                          placeholder='ເຊັ່ນ 205N0001.25', debounce=False, style=inp_s())
-            ]),
-            html.Div(style={'paddingBottom':'2px'}, children=[btn('ລຶບ','adm-btn-del',db.RED)]),
-        ]),
-        html.Div(id='adm-del-result', style={'marginTop':'12px'})
-    ]),
-
-    # ── 4. Add Subject ───────────────────────────────────────
-    html.Div(style=db.card_style('#6A1B9A'), children=[
-        db.sec_title('➕ ເພີ່ມວິຊາໃໝ່'),
-        db.sec_sub('ປ້ອນລະຫັດ ແລະ ຊື່ວິຊາ'),
-        html.Div(style={'display':'flex','gap':'12px','flexWrap':'wrap','alignItems':'flex-end'}, children=[
-            html.Div(style={'flex':'1','minWidth':'150px'}, children=[
-                lbl('ລະຫັດວິຊາ'),
-                dcc.Input(id='adm-subcode', type='text',
-                          placeholder='205CS201', debounce=False, style=inp_s())
-            ]),
-            html.Div(style={'flex':'3','minWidth':'240px'}, children=[
-                lbl('ຊື່ວິຊາ'),
-                dcc.Input(id='adm-subname', type='text',
-                          placeholder='ຊື່ວິຊາ...', debounce=False, style=inp_s())
-            ]),
-            html.Div(style={'paddingBottom':'2px'}, children=[btn('ບັນທຶກ','adm-btn-sub','#6A1B9A')]),
-        ]),
-        html.Div(id='adm-sub-result', style={'marginTop':'12px'})
-    ]),
-
-    # ── 5. Delete Subject ────────────────────────────────────
-    html.Div(style=db.card_style('#B71C1C'), children=[
-        db.sec_title('🗑 ລຶບວິຊາ'),
-        db.sec_sub('ລຶບວິຊາ ແລະ ຄະແນນທັງໝົດຂອງວິຊານັ້ນອອກຈາກລະບົບ'),
-        html.Div(style={'display':'flex','gap':'12px','flexWrap':'wrap','alignItems':'flex-end'}, children=[
-            html.Div(style={'flex':'2','minWidth':'200px'}, children=[
-                lbl('ລະຫັດວິຊາທີ່ຕ້ອງການລຶບ'),
-                dcc.Input(id='adm-del-subcode', type='text',
-                          placeholder='ເຊັ່ນ 205CS201', debounce=False, style=inp_s())
-            ]),
-            html.Div(style={'paddingBottom':'2px'}, children=[btn('ລຶບ','adm-btn-del-sub','#B71C1C')]),
-        ]),
-        html.Div(id='adm-del-sub-result', style={'marginTop':'12px'})
-    ]),
-
-    # ── 6. Edit Grade ────────────────────────────────────────
-    html.Div(style=db.card_style('#E65100'), children=[
-        db.sec_title('✏️ ແກ້ໄຂເກຣດ'),
-        db.sec_sub('ປ້ອນລະຫັດ ນ.ສ · ລະຫັດວິຊາ · ພາກຮຽນ · ເກຣດໃໝ່'),
-        html.Div(style={'display':'flex','gap':'12px','flexWrap':'wrap','alignItems':'flex-end'}, children=[
-            html.Div(style={'flex':'2','minWidth':'160px'}, children=[
-                lbl('ລະຫັດນັກສຶກສາ'),
-                dcc.Input(id='adm-edit-stu', type='text',
-                          placeholder='205N0001.25', debounce=False, style=inp_s())
-            ]),
-            html.Div(style={'flex':'2','minWidth':'130px'}, children=[
-                lbl('ລະຫັດວິຊາ'),
-                dcc.Input(id='adm-edit-sub', type='text',
-                          placeholder='205CS201', debounce=False, style=inp_s())
-            ]),
-            html.Div(style={'flex':'1','minWidth':'100px'}, children=[
-                lbl('ພາກຮຽນ'),
-                dcc.Dropdown(id='adm-edit-sem',
-                    options=[{'label':s,'value':s} for s in db.sem_order],
-                    placeholder='ເລືອກ...', clearable=False, style={'fontSize':'13px'})
-            ]),
-            html.Div(style={'flex':'1','minWidth':'100px'}, children=[
-                lbl('ເກຣດໃໝ່'),
-                dcc.Dropdown(id='adm-edit-grade',
-                    options=[{'label':g,'value':g} for g in ['A','B+','B','C+','C','D+','D','F']],
-                    placeholder='ເລືອກ...', clearable=False, style={'fontSize':'13px'})
-            ]),
-            html.Div(style={'paddingBottom':'2px'}, children=[btn('ບັນທຶກ','adm-btn-edit','#E65100')]),
-        ]),
-        html.Div(id='adm-edit-result', style={'marginTop':'12px'})
-    ]),
-
-    # ── 7. Export ────────────────────────────────────────────
-    html.Div(style=db.card_style('#00695C'), children=[
-        db.sec_title('📥 Export ຂໍ້ມູນ'),
-        db.sec_sub('ດາວໂຫລດຂໍ້ມູນອອກເປັນໄຟລ໌ Excel'),
-        html.Div(style={'display':'flex','gap':'12px','flexWrap':'wrap'}, children=[
-            html.A(html.Button('⬇ Export ນັກສຶກສາທັງໝົດ', style={
-                'padding':'10px 20px','background':'#00695C','color':'white',
-                'border':'none','borderRadius':'8px','fontSize':'13px',
-                'fontWeight':'600','cursor':'pointer',
-                'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'
-            }), href='/export/students', target='_blank'),
-            html.A(html.Button('⬇ Export ວິຊາທັງໝົດ', style={
-                'padding':'10px 20px','background':'#00838F','color':'white',
-                'border':'none','borderRadius':'8px','fontSize':'13px',
-                'fontWeight':'600','cursor':'pointer',
-                'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'
-            }), href='/export/subjects', target='_blank'),
-            html.A(html.Button('⬇ Export ຄະແນນທັງໝົດ', style={
-                'padding':'10px 20px','background':'#1565C0','color':'white',
-                'border':'none','borderRadius':'8px','fontSize':'13px',
-                'fontWeight':'600','cursor':'pointer',
-                'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'
-            }), href='/export/scores', target='_blank'),
-        ]),
-    ]),
-
-    # ── 8. Reset ─────────────────────────────────────────────
-    html.Div(style=db.card_style('#37474F'), children=[
-        db.sec_title('⚠️ ລ້າງຂໍ້ມູນທັງໝົດ (Reset)'),
-        db.sec_sub('ລຶບຂໍ້ມູນ Student, Subject, Score ທັງໝົດອອກຈາກລະບົບ — ຄືນຄ່າບໍ່ໄດ້!'),
-        html.Div(style={'display':'flex','gap':'12px','alignItems':'center','flexWrap':'wrap'}, children=[
-            html.Div(style={'flex':'1'}, children=[
-                lbl('ພິມ "RESET" ເພື່ອຢືນຢັນ'),
-                dcc.Input(id='adm-reset-confirm', type='text',
-                          placeholder='RESET', debounce=False, style=inp_s())
-            ]),
-            html.Div(style={'paddingTop':'20px'}, children=[
-                btn('ລ້າງຂໍ້ມູນທັງໝົດ', 'adm-btn-reset', '#37474F')
-            ]),
-        ]),
-        html.Div(id='adm-reset-result', style={'marginTop':'12px'})
-    ]),
-
-    # ── 9. Student Table ─────────────────────────────────────
+    # ── 1b. Import History ────────────────────────────────────
     html.Div(style=db.card_style('#546078'), children=[
-        db.sec_title(f'👤 ລາຍຊື່ນ.ສ ທັງໝົດ ({db.total} ຄົນ)'),
-        db.sec_sub('ກົດຫົວຖັນເພື່ອຈັດຮຽງ · ຊ່ອງດ້ານລຸ່ມສຳລັບຄົ້ນຫາ'),
-        dash_table.DataTable(
-            id='adm-stu-table',
-            data=db.df_student[['student_id','student_code','gender']].to_dict('records'),
-            columns=[{'name':c,'id':c} for c in ['student_id','student_code','gender']],
-            style_table={'overflowX':'auto','borderRadius':'10px','overflow':'hidden','border':f'1px solid {db.BD}'},
-            style_header={'backgroundColor':'#F8FAFD','color':db.TX,'fontWeight':'600',
-                'fontSize':'12px','border':'none','padding':'12px 16px','borderBottom':f'1px solid {db.BD}'},
-            style_cell={'fontSize':'13px','padding':'10px 16px','border':'none',
-                'borderBottom':f'1px solid {db.BD}','textAlign':'center',
-                'color':db.TX2,'backgroundColor':'white',
-                'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'},
-            style_data={'backgroundColor':'white'},
-            style_data_conditional=[
-                {'if':{'row_index':'odd'},'backgroundColor':'#FAFBFD'},
-                {'if':{'filter_query':'{gender} = "F"'},'color':'#6A1B9A','fontWeight':'600'},
-            ],
-            page_size=15, sort_action='native', filter_action='native', style_as_list_view=True,
-        )
+        db.sec_title('🕐 ປະຫວັດການນຳເຂົ້າຂໍ້ມູນ'),
+        db.sec_sub('10 ການນຳເຂົ້າຫຼ້າສຸດ — ໃຜ, ເມື່ອໃດ, ໄຟລ໌ໃດ'),
+        html.Div(id='adm-import-history', style={'marginTop':'8px'}),
     ]),
 
-    # ── 10. Subject Table ────────────────────────────────────
-    html.Div(style=db.card_style(db.BLUE), children=[
-        db.sec_title(f'📚 ວິຊາທັງໝົດ ({db.total_subj} ວິຊາ)'),
-        db.sec_sub('ກົດຫົວຖັນເພື່ອຈັດຮຽງ · ຊ່ອງດ້ານລຸ່ມສຳລັບຄົ້ນຫາ'),
-        dash_table.DataTable(
-            id='adm-sub-table',
-            data=db.df_subject[['subject_id','subject_code','subject_name']].to_dict('records'),
-            columns=[
-                {'name':'ID',        'id':'subject_id'},
-                {'name':'ລະຫັດວິຊາ', 'id':'subject_code'},
-                {'name':'ຊື່ວິຊາ',    'id':'subject_name'},
-            ],
-            style_table={'overflowX':'auto','borderRadius':'10px','overflow':'hidden','border':f'1px solid {db.BD}'},
-            style_header={'backgroundColor':'#F8FAFD','color':db.TX,'fontWeight':'600',
-                'fontSize':'12px','border':'none','padding':'12px 16px','borderBottom':f'1px solid {db.BD}'},
-            style_cell={'fontSize':'13px','padding':'10px 16px','border':'none',
-                'borderBottom':f'1px solid {db.BD}','textAlign':'left',
-                'color':db.TX2,'backgroundColor':'white',
-                'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'},
-            style_data={'backgroundColor':'white'},
-            style_data_conditional=[{'if':{'row_index':'odd'},'backgroundColor':'#FAFBFD'}],
-            style_cell_conditional=[
-                {'if':{'column_id':'subject_id'},   'textAlign':'center','width':'60px'},
-                {'if':{'column_id':'subject_code'},  'width':'140px'},
-                {'if':{'column_id':'subject_name'},  'textAlign':'left'},
-            ],
-            page_size=15, sort_action='native', filter_action='native', style_as_list_view=True,
-        )
+    # ── 2-3. Add/Delete Student ───────────────────────────────
+    html.Div(style={'display':'grid','gridTemplateColumns':'1fr 1fr','gap':'20px','marginBottom':'20px'}, children=[
+        html.Div(style={**db.card_style(db.GREEN),'marginBottom':'0'}, children=[
+            db.sec_title('➕ ເພີ່ມນັກສຶກສາໃໝ່'),
+            db.sec_sub('ປ້ອນລະຫັດ ແລະ ເພດ ແລ້ວກົດ "ບັນທຶກ"'),
+            html.Div(style={'display':'flex','gap':'12px','flexWrap':'wrap','alignItems':'flex-end'}, children=[
+                html.Div(style={'flex':'2','minWidth':'140px'}, children=[
+                    lbl('ລະຫັດນັກສຶກສາ'),
+                    dcc.Input(id='adm-code', type='text',
+                              placeholder='ເຊັ່ນ 205N0001.25', debounce=False, style=inp_s())
+                ]),
+                html.Div(style={'flex':'1','minWidth':'120px'}, children=[
+                    lbl('ເພດ'),
+                    dcc.Dropdown(id='adm-gender',
+                        options=[{'label':'ຊາຍ (Male)','value':'M'},
+                                  {'label':'ຍິງ (Female)','value':'F'}],
+                        placeholder='ເລືອກ...', clearable=False, style={'fontSize':'13px'})
+                ]),
+                html.Div(style={'paddingBottom':'2px'}, children=[btn('ບັນທຶກ','adm-btn-add',db.GREEN)]),
+            ]),
+            html.Div(id='adm-add-result', style={'marginTop':'12px'})
+        ]),
+        html.Div(style={**db.card_style(db.RED),'marginBottom':'0'}, children=[
+            db.sec_title('🗑 ລຶບນັກສຶກສາ'),
+            db.sec_sub('ລຶບນ.ສ ແລະ ຄະແນນທັງໝົດຂອງນ.ສ ຄົນນັ້ນອອກຈາກລະບົບ'),
+            html.Div(style={'display':'flex','gap':'12px','flexWrap':'wrap','alignItems':'flex-end'}, children=[
+                html.Div(style={'flex':'2','minWidth':'140px'}, children=[
+                    lbl('ລະຫັດນັກສຶກສາທີ່ຕ້ອງການລຶບ'),
+                    dcc.Input(id='adm-del-code', type='text',
+                              placeholder='ເຊັ່ນ 205N0001.25', debounce=False, style=inp_s())
+                ]),
+                html.Div(style={'paddingBottom':'2px'}, children=[btn('ລຶບ','adm-btn-del',db.RED)]),
+            ]),
+            html.Div(id='adm-del-result', style={'marginTop':'12px'})
+        ]),
+    ]),
+
+    # ── 4-5. Add/Delete Subject ───────────────────────────────
+    html.Div(style={'display':'grid','gridTemplateColumns':'1fr 1fr','gap':'20px','marginBottom':'20px'}, children=[
+        html.Div(style={**db.card_style('#6A1B9A'),'marginBottom':'0'}, children=[
+            db.sec_title('➕ ເພີ່ມວິຊາໃໝ່'),
+            db.sec_sub('ປ້ອນລະຫັດ ແລະ ຊື່ວິຊາ'),
+            html.Div(style={'display':'flex','gap':'12px','flexWrap':'wrap','alignItems':'flex-end'}, children=[
+                html.Div(style={'flex':'1','minWidth':'110px'}, children=[
+                    lbl('ລະຫັດວິຊາ'),
+                    dcc.Input(id='adm-subcode', type='text',
+                              placeholder='205CS201', debounce=False, style=inp_s())
+                ]),
+                html.Div(style={'flex':'2','minWidth':'160px'}, children=[
+                    lbl('ຊື່ວິຊາ'),
+                    dcc.Input(id='adm-subname', type='text',
+                              placeholder='ຊື່ວິຊາ...', debounce=False, style=inp_s())
+                ]),
+                html.Div(style={'paddingBottom':'2px'}, children=[btn('ບັນທຶກ','adm-btn-sub','#6A1B9A')]),
+            ]),
+            html.Div(id='adm-sub-result', style={'marginTop':'12px'})
+        ]),
+        html.Div(style={**db.card_style('#B71C1C'),'marginBottom':'0'}, children=[
+            db.sec_title('🗑 ລຶບວິຊາ'),
+            db.sec_sub('ລຶບວິຊາ ແລະ ຄະແນນທັງໝົດຂອງວິຊານັ້ນອອກຈາກລະບົບ'),
+            html.Div(style={'display':'flex','gap':'12px','flexWrap':'wrap','alignItems':'flex-end'}, children=[
+                html.Div(style={'flex':'2','minWidth':'140px'}, children=[
+                    lbl('ລະຫັດວິຊາທີ່ຕ້ອງການລຶບ'),
+                    dcc.Input(id='adm-del-subcode', type='text',
+                              placeholder='ເຊັ່ນ 205CS201', debounce=False, style=inp_s())
+                ]),
+                html.Div(style={'paddingBottom':'2px'}, children=[btn('ລຶບ','adm-btn-del-sub','#B71C1C')]),
+            ]),
+            html.Div(id='adm-del-sub-result', style={'marginTop':'12px'})
+        ]),
+    ]),
+
+    # ── 6 + 8. Edit Grade + Reset ───────────────────────────────
+    html.Div(style={'display':'grid','gridTemplateColumns':'1fr 1fr','gap':'20px','marginBottom':'20px'}, children=[
+        html.Div(style={**db.card_style('#E65100'),'marginBottom':'0'}, children=[
+            db.sec_title('✏️ ແກ້ໄຂເກຣດ'),
+            db.sec_sub('ປ້ອນລະຫັດ ນ.ສ · ລະຫັດວິຊາ · ພາກຮຽນ · ເກຣດໃໝ່'),
+            html.Div(style={'display':'flex','gap':'12px','flexWrap':'wrap','alignItems':'flex-end'}, children=[
+                html.Div(style={'flex':'2','minWidth':'140px'}, children=[
+                    lbl('ລະຫັດນັກສຶກສາ'),
+                    dcc.Input(id='adm-edit-stu', type='text',
+                              placeholder='205N0001.25', debounce=False, style=inp_s())
+                ]),
+                html.Div(style={'flex':'2','minWidth':'120px'}, children=[
+                    lbl('ລະຫັດວິຊາ'),
+                    dcc.Input(id='adm-edit-sub', type='text',
+                              placeholder='205CS201', debounce=False, style=inp_s())
+                ]),
+                html.Div(style={'flex':'1','minWidth':'100px'}, children=[
+                    lbl('ພາກຮຽນ'),
+                    dcc.Dropdown(id='adm-edit-sem',
+                        options=[{'label':s,'value':s} for s in db.sem_order],
+                        placeholder='ເລືອກ...', clearable=False, style={'fontSize':'13px'})
+                ]),
+                html.Div(style={'flex':'1','minWidth':'100px'}, children=[
+                    lbl('ເກຣດໃໝ່'),
+                    dcc.Dropdown(id='adm-edit-grade',
+                        options=[{'label':g,'value':g} for g in ['A','B+','B','C+','C','D+','D','F']],
+                        placeholder='ເລືອກ...', clearable=False, style={'fontSize':'13px'})
+                ]),
+                html.Div(style={'paddingBottom':'2px'}, children=[btn('ບັນທຶກ','adm-btn-edit','#E65100')]),
+            ]),
+            html.Div(id='adm-edit-result', style={'marginTop':'12px'})
+        ]),
+        html.Div(style={**db.card_style('#37474F'),'marginBottom':'0'}, children=[
+            db.sec_title('⚠️ ລ້າງຂໍ້ມູນທັງໝົດ (Reset)'),
+            db.sec_sub('ລຶບ Student/Subject/Score ທັງໝົດ — ລະບົບ Backup ໃຫ້ອັດຕະໂນມັດກ່ອນລຶບ'),
+            html.Div(style={'display':'flex','gap':'12px','alignItems':'center','flexWrap':'wrap'}, children=[
+                html.Div(style={'flex':'1','minWidth':'140px'}, children=[
+                    lbl('ພິມ "RESET" ເພື່ອຢືນຢັນ'),
+                    dcc.Input(id='adm-reset-confirm', type='text',
+                              placeholder='RESET', debounce=False, style=inp_s())
+                ]),
+                html.Div(style={'paddingTop':'20px'}, children=[
+                    btn('ລ້າງຂໍ້ມູນທັງໝົດ', 'adm-btn-reset', '#37474F')
+                ]),
+            ]),
+            html.Div(id='adm-reset-result', style={'marginTop':'12px'})
+        ]),
+    ]),
+
+    # ── 7-7b. Export + Backup ─────────────────────────────────
+    html.Div(style={'display':'grid','gridTemplateColumns':'1fr 1fr','gap':'20px','marginBottom':'20px'}, children=[
+        html.Div(style={**db.card_style('#00695C'),'marginBottom':'0'}, children=[
+            db.sec_title('📥 Export ຂໍ້ມູນ'),
+            db.sec_sub('ດາວໂຫລດຂໍ້ມູນອອກເປັນໄຟລ໌ Excel'),
+            html.Div(style={'display':'flex','gap':'12px','flexWrap':'wrap'}, children=[
+                html.A(html.Button('⬇ ນັກສຶກສາທັງໝົດ', style={
+                    'padding':'10px 20px','background':'#00695C','color':'white',
+                    'border':'none','borderRadius':'8px','fontSize':'13px',
+                    'fontWeight':'600','cursor':'pointer',
+                    'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'
+                }), href='/export/students', target='_blank'),
+                html.A(html.Button('⬇ ວິຊາທັງໝົດ', style={
+                    'padding':'10px 20px','background':'#00838F','color':'white',
+                    'border':'none','borderRadius':'8px','fontSize':'13px',
+                    'fontWeight':'600','cursor':'pointer',
+                    'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'
+                }), href='/export/subjects', target='_blank'),
+                html.A(html.Button('⬇ ຄະແນນທັງໝົດ', style={
+                    'padding':'10px 20px','background':'#1565C0','color':'white',
+                    'border':'none','borderRadius':'8px','fontSize':'13px',
+                    'fontWeight':'600','cursor':'pointer',
+                    'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'
+                }), href='/export/scores', target='_blank'),
+            ]),
+        ]),
+        html.Div(style={**db.card_style('#00695C'),'marginBottom':'0'}, children=[
+            db.sec_title('💾 Backup ຂໍ້ມູນ'),
+            db.sec_sub('ບັນທຶກ Student/Subject/Score ທັງໝົດໄວ້ກູ້ຄືນ ຖ້າມີຂໍ້ຜິດພາດເກີດຂຶ້ນ'),
+            html.Div(style={'display':'flex','gap':'10px','alignItems':'center','flexWrap':'wrap'}, children=[
+                btn('💾 Backup ດຽວນີ້', 'adm-btn-backup', '#00695C'),
+            ]),
+            html.Div(id='adm-backup-result', style={'marginTop':'12px'}),
+        ]),
+    ]),
+
+    # ── 9-10. Student + Subject Table ──────────────────────────
+    html.Div(style={'display':'grid','gridTemplateColumns':'1fr 1fr','gap':'20px','marginBottom':'20px'}, children=[
+        html.Div(style={**db.card_style('#546078'),'marginBottom':'0'}, children=[
+            db.sec_title(f'👤 ລາຍຊື່ນ.ສ ທັງໝົດ ({db.total} ຄົນ)'),
+            db.sec_sub('ກົດຫົວຖັນເພື່ອຈັດຮຽງ · ຊ່ອງດ້ານລຸ່ມສຳລັບຄົ້ນຫາ'),
+            dash_table.DataTable(
+                id='adm-stu-table',
+                data=db.df_student[['student_id','student_code','gender']].to_dict('records'),
+                columns=[{'name':c,'id':c} for c in ['student_id','student_code','gender']],
+                style_table={'overflowX':'auto','borderRadius':'10px','overflow':'hidden','border':f'1px solid {db.BD}'},
+                style_header={'backgroundColor':'#F8FAFD','color':db.TX,'fontWeight':'600',
+                    'fontSize':'12px','border':'none','padding':'12px 16px','borderBottom':f'1px solid {db.BD}'},
+                style_cell={'fontSize':'13px','padding':'10px 16px','border':'none',
+                    'borderBottom':f'1px solid {db.BD}','textAlign':'center',
+                    'color':db.TX2,'backgroundColor':'white',
+                    'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'},
+                style_data={'backgroundColor':'white'},
+                style_data_conditional=[
+                    {'if':{'row_index':'odd'},'backgroundColor':'#FAFBFD'},
+                    {'if':{'filter_query':'{gender} = "F"'},'color':'#6A1B9A','fontWeight':'600'},
+                ],
+                page_size=10, sort_action='native', filter_action='native', style_as_list_view=True,
+            )
+        ]),
+        html.Div(style={**db.card_style(db.BLUE),'marginBottom':'0'}, children=[
+            db.sec_title(f'📚 ວິຊາທັງໝົດ ({db.total_subj} ວິຊາ)'),
+            db.sec_sub('ກົດຫົວຖັນເພື່ອຈັດຮຽງ · ຊ່ອງດ້ານລຸ່ມສຳລັບຄົ້ນຫາ'),
+            dash_table.DataTable(
+                id='adm-sub-table',
+                data=db.df_subject[['subject_id','subject_code','subject_name']].to_dict('records'),
+                columns=[
+                    {'name':'ID',        'id':'subject_id'},
+                    {'name':'ລະຫັດວິຊາ', 'id':'subject_code'},
+                    {'name':'ຊື່ວິຊາ',    'id':'subject_name'},
+                ],
+                style_table={'overflowX':'auto','borderRadius':'10px','overflow':'hidden','border':f'1px solid {db.BD}'},
+                style_header={'backgroundColor':'#F8FAFD','color':db.TX,'fontWeight':'600',
+                    'fontSize':'12px','border':'none','padding':'12px 16px','borderBottom':f'1px solid {db.BD}'},
+                style_cell={'fontSize':'13px','padding':'10px 16px','border':'none',
+                    'borderBottom':f'1px solid {db.BD}','textAlign':'left',
+                    'color':db.TX2,'backgroundColor':'white',
+                    'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'},
+                style_data={'backgroundColor':'white'},
+                style_data_conditional=[{'if':{'row_index':'odd'},'backgroundColor':'#FAFBFD'}],
+                style_cell_conditional=[
+                    {'if':{'column_id':'subject_id'},   'textAlign':'center','width':'50px'},
+                    {'if':{'column_id':'subject_code'},  'width':'110px'},
+                    {'if':{'column_id':'subject_name'},  'textAlign':'left'},
+                ],
+                page_size=10, sort_action='native', filter_action='native', style_as_list_view=True,
+            )
+        ]),
     ]),
 ])
 
 
+def build_import_history():
+    try:
+        with db.engine.connect() as conn:
+            rows = conn.execute(sa.text(
+                "SELECT imported_by, filename, n_students, n_subjects, n_scores, imported_at "
+                "FROM import_log ORDER BY imported_at DESC LIMIT 50"
+            )).fetchall()
+    except Exception:
+        logger.exception('build_import_history failed')
+        return html.Div('ບໍ່ສາມາດໂຫລດປະຫວັດໄດ້', style={**LAO,'color':db.TX,'fontSize':'12px'})
+
+    if not rows:
+        return html.Div('ຍັງບໍ່ມີການນຳເຂົ້າຂໍ້ມູນ', style={**LAO,'color':'#90A4AE','fontSize':'12px'})
+
+    head = html.Tr(children=[
+        html.Th(t, style={**LAO,'padding':'8px 12px','background':'#F8FAFD','color':db.TX,
+                           'fontSize':'12px','fontWeight':'600','textAlign':'left',
+                           'position':'sticky','top':'0','zIndex':'1'})
+        for t in ['ເວລາ','ໂດຍ','ໄຟລ໌','ນ.ສ ໃໝ່','ວິຊາໃໝ່','ຄະແນນໃໝ່']
+    ])
+    body = [html.Tr(style={'borderBottom':f'1px solid {db.BD}'}, children=[
+        html.Td(r.imported_at.strftime('%Y-%m-%d %H:%M'), style={**LAO,'padding':'8px 12px','fontSize':'12px'}),
+        html.Td(r.imported_by, style={**LAO,'padding':'8px 12px','fontSize':'12px'}),
+        html.Td(r.filename, style={**LAO,'padding':'8px 12px','fontSize':'12px'}),
+        html.Td(str(r.n_students), style={'padding':'8px 12px','fontSize':'12px','textAlign':'left'}),
+        html.Td(str(r.n_subjects), style={'padding':'8px 12px','fontSize':'12px','textAlign':'left'}),
+        html.Td(str(r.n_scores), style={'padding':'8px 12px','fontSize':'12px','textAlign':'left'}),
+    ]) for r in rows]
+
+    return html.Div(style={'overflowY':'auto','maxHeight':'360px','overflowX':'auto',
+                            'borderRadius':'10px','border':f'1px solid {db.BD}'}, children=[
+        html.Table(style={'width':'100%','borderCollapse':'collapse'}, children=[
+            html.Thead(head), html.Tbody(body)
+        ])
+    ])
+
+
 def register_callbacks(app):
+
+    @app.callback(Output('adm-import-history','children'), Input('adm-import-history','id'))
+    def show_import_history(_):
+        return build_import_history()
 
     # ── Step 1: วิเคราะห์ไฟล์ (ยังไม่ import จริง) ──────────
     @app.callback(
@@ -369,7 +488,8 @@ def register_callbacks(app):
                     for i,sid in enumerate(sids):
                         if sid not in sm:
                             ms+=1; g=str(gens[i]).strip() if i<len(gens) and gens[i] else 'M'
-                            gv='F' if any(x in g for x in ['ນາງ','ສນ','ສາມະເນນ']) else 'M'
+                            # ນາງ = ນາງສາວ (ຍິງ) · ທ້າວ = ເດັກຊາຍ (ຊາຍ) · ສນ/ສາມະເນນ = ສາມະເນນ (ຊາຍ)
+                            gv='F' if 'ນາງ' in g else 'M'
                             is_.append({'student_id':ms,'student_code':sid,'gender':gv,'major':maj})
                             sm[sid]=ms; new_s+=1
                         else:
@@ -398,7 +518,7 @@ def register_callbacks(app):
                                         'semester':cur,'grade':g,'grade_point':gp})
                             sc_set.add(key); new_sc+=1
 
-            pending = json.dumps({'is_':is_,'ib_':ib_,'ic_':ic_})
+            pending = json.dumps({'is_':is_,'ib_':ib_,'ic_':ic_,'filename':filename})
 
             badge = lambda txt,bg,col: html.Span(txt, style={
                 **LAO,'background':bg,'color':col,
@@ -457,32 +577,41 @@ def register_callbacks(app):
 
             return upload_msg, {'display':'block'}, html.Div(preview_blocks), pending
 
-        except Exception as e:
-            return err_box(f'ຂໍ້ຜິດພາດ: {str(e)[:120]}'), hidden, '', None
+        except Exception:
+            logger.exception('Excel import preview failed')
+            return err_box(GENERIC_ERR_MSG), hidden, '', None
 
     # ── Step 2a: ยืนยัน import จริง ──────────────────────────
     @app.callback(
         Output('adm-confirm-result','children'),
         Output('adm-confirm-section','style', allow_duplicate=True),
         Output('adm-pending-data','data', allow_duplicate=True),
+        Output('adm-import-history','children', allow_duplicate=True),
         Input('adm-btn-confirm','n_clicks'),
         State('adm-pending-data','data'),
         prevent_initial_call=True)
     def confirm_import(n, pending_json):
-        if not pending_json: return warn_box('ບໍ່ມີຂໍ້ມູນ'), no_update, no_update
+        if not pending_json: return warn_box('ບໍ່ມີຂໍ້ມູນ'), no_update, no_update, no_update
         try:
             pending = json.loads(pending_json)
             is_ = pending['is_']; ib_ = pending['ib_']; ic_ = pending['ic_']
+            filename = pending.get('filename', 'ບໍ່ຮູ້ຊື່ໄຟລ໌')
             with db.engine.connect() as conn:
                 if is_: conn.execute(sa.text("INSERT INTO student(student_id,student_code,gender,major) VALUES(:student_id,:student_code,:gender,:major)"),is_)
                 if ib_: conn.execute(sa.text("INSERT INTO subject(subject_id,subject_code,subject_name) VALUES(:subject_id,:subject_code,:subject_name)"),ib_)
                 if ic_: conn.execute(sa.text("INSERT INTO score(score_id,student_id,subject_id,semester,grade,grade_point) VALUES(:score_id,:student_id,:subject_id,:semester,:grade,:grade_point)"),ic_)
+                conn.execute(sa.text(
+                    "INSERT INTO import_log(imported_by,filename,n_students,n_subjects,n_scores) "
+                    "VALUES(:by,:fn,:ns,:nb,:nc)"
+                ), {'by': flask_session.get('email', 'ບໍ່ຮູ້ຈັກ'), 'fn': filename,
+                    'ns': len(is_), 'nb': len(ib_), 'nc': len(ic_)})
                 conn.commit()
             db.reload_data()
             return ok_box('ນຳເຂົ້າສຳເລັດ!',
-                          f'ນ.ສ ໃໝ່: {len(is_)} · ວິຊາໃໝ່: {len(ib_)} · ຄະແນນ: {len(ic_)}'),                    {'display':'none'}, None
-        except Exception as e:
-            return err_box(f'ຂໍ້ຜິດພາດ: {str(e)[:120]}'), no_update, no_update
+                          f'ນ.ສ ໃໝ່: {len(is_)} · ວິຊາໃໝ່: {len(ib_)} · ຄະແນນ: {len(ic_)}'),                    {'display':'none'}, None, build_import_history()
+        except Exception:
+            logger.exception('Excel import confirm failed')
+            return err_box(GENERIC_ERR_MSG), no_update, no_update, no_update
 
     # ── Step 2b: ยกเลิก ──────────────────────────────────────
     @app.callback(
@@ -510,8 +639,9 @@ def register_callbacks(app):
                 conn.commit()
             db.reload_data()
             return ok_box(f'ເພີ່ມ "{code}" ສຳເລັດ', f'{"ຊາຍ" if gender=="M" else "ຍິງ"} · ID: {nid}')
-        except Exception as e:
-            return err_box(f'ຂໍ້ຜິດພາດ: {str(e)[:80]}')
+        except Exception:
+            logger.exception('add_stu failed')
+            return err_box(GENERIC_ERR_MSG)
 
     # ── Delete Student ───────────────────────────────────────
     @app.callback(Output('adm-del-result','children'), Input('adm-btn-del','n_clicks'),
@@ -530,8 +660,9 @@ def register_callbacks(app):
                 conn.commit()
             db.reload_data()
             return ok_box(f'ລຶບ "{code}" ສຳເລັດ', f'ລຶບຄະແນນທັງໝົດ {sc_count} ແຖວ')
-        except Exception as e:
-            return err_box(f'ຂໍ້ຜິດພາດ: {str(e)[:80]}')
+        except Exception:
+            logger.exception('del_stu failed')
+            return err_box(GENERIC_ERR_MSG)
 
     # ── Add Subject ──────────────────────────────────────────
     @app.callback(Output('adm-sub-result','children'), Input('adm-btn-sub','n_clicks'),
@@ -549,8 +680,9 @@ def register_callbacks(app):
                 conn.commit()
             db.reload_data()
             return ok_box(f'ເພີ່ມວິຊາ "{code}" ສຳເລັດ', name)
-        except Exception as e:
-            return err_box(f'ຂໍ້ຜິດພາດ: {str(e)[:80]}')
+        except Exception:
+            logger.exception('add_sub failed')
+            return err_box(GENERIC_ERR_MSG)
 
     # ── Delete Subject ───────────────────────────────────────
     @app.callback(Output('adm-del-sub-result','children'), Input('adm-btn-del-sub','n_clicks'),
@@ -569,8 +701,9 @@ def register_callbacks(app):
                 conn.commit()
             db.reload_data()
             return ok_box(f'ລຶບວິຊາ "{code}" ສຳເລັດ', f'ລຶບຄະແນນທັງໝົດ {sc_count} ແຖວ')
-        except Exception as e:
-            return err_box(f'ຂໍ້ຜິດພາດ: {str(e)[:80]}')
+        except Exception:
+            logger.exception('del_sub failed')
+            return err_box(GENERIC_ERR_MSG)
 
     # ── Edit Grade ───────────────────────────────────────────
     @app.callback(Output('adm-edit-result','children'), Input('adm-btn-edit','n_clicks'),
@@ -598,21 +731,50 @@ def register_callbacks(app):
             db.reload_data()
             return ok_box(f'ແກ້ໄຂເກຣດ {stu_code} · {sub_code} · {sem} ສຳເລັດ',
                           f'{old_grade} → {grade} ({gp})')
-        except Exception as e:
-            return err_box(f'ຂໍ້ຜິດພາດ: {str(e)[:120]}')
+        except Exception:
+            logger.exception('edit_grade failed')
+            return err_box(GENERIC_ERR_MSG)
+
+    # ── Backup ───────────────────────────────────────────────
+    @app.callback(Output('adm-backup-result','children'), Input('adm-btn-backup','n_clicks'),
+                  prevent_initial_call=True)
+    def manual_backup(n):
+        try:
+            path = backup_all_tables(reason='manual')
+            fname = os.path.basename(path)
+            return ok_box('Backup ສຳເລັດ!', detail=html.A(
+                f'⬇ ດາວໂຫລດ {fname}', href=f'/download-backup/{fname}',
+                target='_blank', style={**LAO,'color':'#00695C','fontWeight':'600'}))
+        except Exception:
+            logger.exception('manual_backup failed')
+            return err_box(GENERIC_ERR_MSG)
 
     # ── Reset ────────────────────────────────────────────────
-    @app.callback(Output('adm-reset-result','children'), Input('adm-btn-reset','n_clicks'),
-                  State('adm-reset-confirm','value'), prevent_initial_call=True)
+    @app.callback(
+        Output('adm-reset-result','children'),
+        Output('adm-import-history','children', allow_duplicate=True),
+        Input('adm-btn-reset','n_clicks'),
+        State('adm-reset-confirm','value'), prevent_initial_call=True)
     def reset_all(n, confirm):
-        if confirm != 'RESET': return warn_box('ກະລຸນາພິມ "RESET" ໃຫ້ຖືກຕ້ອງເພື່ອຢືນຢັນ')
+        if confirm != 'RESET': return warn_box('ກະລຸນາພິມ "RESET" ໃຫ້ຖືກຕ້ອງເພື່ອຢືນຢັນ'), no_update
         try:
+            backup_path = backup_all_tables(reason='before_reset')
             with db.engine.connect() as conn:
+                n_stu = conn.execute(sa.text("SELECT COUNT(*) FROM student")).scalar()
+                n_sub = conn.execute(sa.text("SELECT COUNT(*) FROM subject")).scalar()
+                n_sc  = conn.execute(sa.text("SELECT COUNT(*) FROM score")).scalar()
                 conn.execute(sa.text("DELETE FROM score"))
                 conn.execute(sa.text("DELETE FROM student"))
                 conn.execute(sa.text("DELETE FROM subject"))
+                conn.execute(sa.text(
+                    "INSERT INTO import_log(imported_by,filename,n_students,n_subjects,n_scores) "
+                    "VALUES(:by,:fn,:ns,:nb,:nc)"
+                ), {'by': flask_session.get('email', 'ບໍ່ຮູ້ຈັກ'), 'fn': '🗑️ ລ້າງຂໍ້ມູນທັງໝົດ (Reset)',
+                    'ns': -n_stu, 'nb': -n_sub, 'nc': -n_sc})
                 conn.commit()
             db.reload_data()
-            return ok_box('ລ້າງຂໍ້ມູນທັງໝົດສຳເລັດ', 'Student, Subject, Score ຖືກລຶບໝົດແລ້ວ')
-        except Exception as e:
-            return err_box(f'ຂໍ້ຜິດພາດ: {str(e)[:80]}')
+            return ok_box('ລ້າງຂໍ້ມູນທັງໝົດສຳເລັດ',
+                          f'Student, Subject, Score ຖືກລຶບໝົດແລ້ວ · 💾 Backup: {os.path.basename(backup_path)}'), build_import_history()
+        except Exception:
+            logger.exception('reset_all failed')
+            return err_box(GENERIC_ERR_MSG), no_update

@@ -1,63 +1,45 @@
-# pages/login.py — Dark Glassmorphism Login & Register
+# pages/login.py — Flat Light Login & Register (separate pages)
 import re
-from dash import html, dcc, Input, Output, State, callback_context, no_update
+from dash import html, dcc, Input, Output, State, no_update
 import auth
 from flask import session as flask_session
 
 FONT   = "Inter,'Noto Sans Lao',Segoe UI,Arial,sans-serif"
-ACCENT = "#5b8dee"
-PURPLE = "#8b5cf6"
-GREEN  = "#10b981"
-RED    = "#f43f5e"
-YELLOW = "#fbbf24"
+ACCENT = "#2D6CDF"
+PURPLE = "#6C63FF"
+GREEN  = "#1B8A5A"
+RED    = "#E0383D"
+YELLOW = "#E8A33D"
 TX     = "#1E2A3A"
-TX2    = "#546078"
-
-TAB_ON = {
-    "flex":"1","padding":"15px","background":"none","border":"none",
-    "borderBottom":f"2.5px solid {ACCENT}","color":ACCENT,
-    "fontSize":"13px","fontWeight":"700","cursor":"pointer","fontFamily":FONT,
-}
-TAB_OFF = {
-    "flex":"1","padding":"15px","background":"none","border":"none",
-    "borderBottom":"2.5px solid transparent","color":TX2,
-    "fontSize":"13px","fontWeight":"500","cursor":"pointer","fontFamily":FONT,
-}
-SHOW = {"padding":"32px 36px","display":"block"}
-HIDE = {"padding":"32px 36px","display":"none"}
-
-def lbl(t):
-    return html.Div(t, style={
-        "fontSize":"11px","fontWeight":"600","color":TX2,
-        "marginBottom":"7px","letterSpacing":".06em",
-        "textTransform":"uppercase","fontFamily":FONT,
-    })
+TX2    = "#7A8699"
+BG     = "#F4F6F9"
+FIELD_BG = "#F1F3F6"
 
 def inp(id_, type_="text", ph=""):
     ac = "email" if "email" in id_ else "off"
     return dcc.Input(id=id_, type=type_, placeholder=ph,
                      autoComplete=ac, name=id_,
                      style={
-                         "width":"100%","height":"48px",
-                         "padding":"0 14px","fontSize":"14px",
-                         "background":"#FFFFFF",
-                         "border":"1.5px solid #E8EBF0",
-                         "borderRadius":"12px","color":"#1E2A3A",
+                         "width":"100%","height":"46px",
+                         "padding":"0 16px","fontSize":"14px",
+                         "background":FIELD_BG,
+                         "border":"none",
+                         "borderRadius":"10px","color":TX,
                          "outline":"none","boxSizing":"border-box",
-                         "fontFamily":FONT,"display":"block","marginBottom":"18px",
-                         "WebkitTextFillColor":"#1E2A3A",
+                         "fontFamily":FONT,"display":"block","marginBottom":"14px",
+                         "WebkitTextFillColor":TX,
                      })
 
-def pw_inp(id_, ph="••••••••"):
-    return html.Div(style={"position":"relative","marginBottom":"18px"}, children=[
+def pw_inp(id_, ph="ລະຫັດຜ່ານ"):
+    return html.Div(style={"position":"relative","marginBottom":"14px"}, children=[
         dcc.Input(id=id_, type="password", placeholder=ph,
                   autoComplete="new-password", name=id_,
                   style={
-                      "width":"100%","height":"48px",
-                      "padding":"0 48px 0 14px","fontSize":"14px",
-                      "background":"#FFFFFF",
-                      "border":"1.5px solid #E8EBF0",
-                      "borderRadius":"12px","color":"#1E2A3A",
+                      "width":"100%","height":"46px",
+                      "padding":"0 46px 0 16px","fontSize":"14px",
+                      "background":FIELD_BG,
+                      "border":"none",
+                      "borderRadius":"10px","color":TX,
                       "outline":"none","boxSizing":"border-box",
                       "fontFamily":FONT,"display":"block",
                   }),
@@ -71,153 +53,121 @@ def pw_inp(id_, ph="••••••••"):
 
 def submit_btn(label, bid, color=ACCENT):
     return html.Button(label, id=bid, n_clicks=0, style={
-        "width":"100%","height":"50px","marginTop":"6px",
-        "background":f"linear-gradient(135deg,{color} 0%,{PURPLE} 100%)",
-        "color":"white","border":"none","borderRadius":"12px",
-        "fontSize":"15px","fontWeight":"700","cursor":"pointer",
-        "fontFamily":FONT,"boxShadow":f"0 4px 20px {color}44",
+        "width":"100%","height":"46px","marginTop":"4px",
+        "background":color,
+        "color":"white","border":"none","borderRadius":"10px",
+        "fontSize":"14px","fontWeight":"700","cursor":"pointer",
+        "fontFamily":FONT,
     })
 
 def alert_box(msg, kind="error"):
     cfg = {
-        "error":   (RED,   "rgba(244,63,94,.12)",  "rgba(244,63,94,.3)",  "✗"),
-        "success": (GREEN, "rgba(16,185,129,.12)", "rgba(16,185,129,.3)", "✓"),
+        "error":   (RED,   "rgba(224,56,61,.08)",  "rgba(224,56,61,.25)",  "✗"),
+        "success": (GREEN, "rgba(27,138,90,.08)",  "rgba(27,138,90,.25)",  "✓"),
     }
     fg, bg, bd, icon = cfg.get(kind, cfg["error"])
     return html.Div(style={
         "background":bg,"border":f"1px solid {bd}","borderRadius":"10px",
         "padding":"11px 14px","display":"flex","alignItems":"center",
-        "gap":"9px","fontFamily":FONT,"marginTop":"12px",
+        "gap":"9px","fontFamily":FONT,"marginTop":"10px",
     }, children=[
         html.Span(icon, style={"color":fg,"fontWeight":"700","fontSize":"14px","flexShrink":"0"}),
         html.Span(msg,  style={"color":fg,"fontSize":"13px","fontWeight":"500"}),
     ])
 
-# ── Layout ────────────────────────────────────────────────────────────────────
-layout = html.Div(style={
-    "minHeight":"100vh",
-    "background":"linear-gradient(135deg,#EEF2F9 0%,#F0F4FF 50%,#F5F6FA 100%)",
-    "display":"flex","flexDirection":"column",
-    "alignItems":"center","justifyContent":"center",
-    "padding":"32px 16px","fontFamily":FONT,
-}, children=[
-    dcc.Location(id="login-url", refresh=True),
-
-    # Glow blobs
-    html.Div(style={
-        "position":"fixed","width":"500px","height":"500px","borderRadius":"50%",
-        "background":"radial-gradient(circle,rgba(91,141,238,.10) 0%,transparent 70%)",
-        "top":"-160px","left":"-160px","pointerEvents":"none",
-    }),
-    html.Div(style={
-        "position":"fixed","width":"420px","height":"420px","borderRadius":"50%",
-        "background":"radial-gradient(circle,rgba(139,92,246,.07) 0%,transparent 70%)",
-        "bottom":"-120px","right":"-120px","pointerEvents":"none",
-    }),
-
-    # Logo
-    html.Div(style={"textAlign":"center","marginBottom":"28px","position":"relative","zIndex":"1"}, children=[
-        html.Div(style={
-            "width":"170px","height":"170px","borderRadius":"50%","margin":"0 auto 14px",
-            "background":"rgba(91,141,238,.12)",
-            "border":"1.5px solid rgba(91,141,238,.28)",
-            "display":"flex","alignItems":"center","justifyContent":"center",
-            "boxShadow":"0 0 40px rgba(91,141,238,.22)",
-        }, children=[
-            html.Img(src="/assets/Logo_NUOL-ORiginal.png",
-                     style={"width":"150px","height":"150px","objectFit":"contain"}),
-        ]),
-        html.Div("ລະບົບວິເຄາະແນວໂນ້ມ ຜົນການຮຽນນັກສຶກສາ", style={
-            "fontSize":"18px","fontWeight":"700","color":"#1E2A3A","fontFamily":FONT,
-        }),
-        html.Div("ພາກວິຊາ ຄອມພິວເຕີ · ມະຫາວິທະຍາໄລແຫ່ງຊາດ", style={
-            "fontSize":"12px","color":TX2,"marginTop":"5px","fontFamily":FONT,
-        }),
-    ]),
-
-    # Card
-    html.Div(style={
-        "width":"100%","maxWidth":"430px","position":"relative","zIndex":"1",
-        "background":"rgba(255,255,255,0.88)",
-        "backdropFilter":"blur(28px)","-webkit-backdropFilter":"blur(28px)",
-        "border":"1px solid #E0E8F4",
-        "borderRadius":"20px",
-        "boxShadow":"0 8px 40px rgba(91,141,238,.10), 0 2px 8px rgba(0,0,0,.05)",
-        "overflow":"hidden",
+def page_shell(*, header_children, body_children, location_id):
+    return html.Div(style={
+        "minHeight":"100vh",
+        "background":BG,
+        "display":"flex","flexDirection":"column",
+        "alignItems":"center","justifyContent":"center",
+        "padding":"32px 16px","fontFamily":FONT,
     }, children=[
-
-        # Tabs
+        dcc.Location(id=location_id, refresh=True),
         html.Div(style={
-            "display":"flex",
-            "borderBottom":"1px solid #E8EBF0",
-            "background":"#F8FAFD",
+            "width":"100%","maxWidth":"430px",
+            "background":"#FFFFFF",
+            "border":"1px solid #E8EBF0",
+            "borderRadius":"16px",
+            "boxShadow":"0 4px 24px rgba(20,30,50,.06)",
+            "overflow":"hidden",
         }, children=[
-            html.Button("ເຂົ້າສູ່ລະບົບ", id="tab-login",    n_clicks=1, style=TAB_ON),
-            html.Button("ລົງທະບຽນ",     id="tab-register", n_clicks=0, style=TAB_OFF),
+            html.Div(style={"textAlign":"center","padding":"36px 36px 8px"}, children=[
+                html.Img(src="/assets/Logo_NUOL-ORiginal.png", style={
+                    "width":"150px","height":"150px","objectFit":"contain","marginBottom":"12px",
+                }),
+                html.Div("ມະຫາວິທະຍາໄລແຫ່ງຊາດ", style={
+                    "fontSize":"20px","fontWeight":"700","color":TX,"fontFamily":FONT,
+                }),
+                html.Div("ລະບົບວິເຄາະແນວໂນ້ມຜົນການຮຽນ", style={
+                    "fontSize":"15px","color":TX2,"marginTop":"4px","fontFamily":FONT,
+                }),
+            ]),
+            *header_children,
+            html.Div(style={"padding":"8px 40px 36px"}, children=body_children),
         ]),
+        html.Div("v1.0.0", style={
+            "marginTop":"18px","fontSize":"11px","color":"#AEB7C4","fontFamily":FONT,
+        }),
+    ])
 
-        # ── Login panel ────────────────────────────────────────
-        html.Div(id="form-login", style=SHOW, children=[
-            html.Div("ຍິນດີຕ້ອນຮັບ ", style={
-                "fontSize":"22px","fontWeight":"800","color":"#1E2A3A","fontFamily":FONT,"marginBottom":"4px",
-            }),
-            html.Div("ໃສ່ອີເມລ ແລະ ລະຫັດຜ່ານຂອງທ່ານ", style={
-                "fontSize":"13px","color":TX2,"fontFamily":FONT,"marginBottom":"26px",
-            }),
-            lbl("ອີເມລ"),
-            inp("login-email", "text", "example@email.com"),
-            lbl("ລະຫັດຜ່ານ"),
-            pw_inp("login-password"),
-            html.Div(id="login-msg", style={"minHeight":"20px"}),
-            submit_btn("ເຂົ້າສູ່ລະບົບ", "btn-login", ACCENT),
+# ── Login page ───────────────────────────────────────────────────────────────
+layout = page_shell(
+    location_id="login-url",
+    header_children=[
+        html.Div("ເຂົ້າສູ່ລະບົບ", style={
+            "textAlign":"center","fontSize":"15px","fontWeight":"700","color":ACCENT,
+            "fontFamily":FONT,"margin":"4px 36px 0","padding":"12px 0",
+            "borderBottom":f"2.5px solid {ACCENT}",
+        }),
+    ],
+    body_children=[
+        html.Div(style={"height":"10px"}),
+        inp("login-email", "text", "ອີເມລ"),
+        pw_inp("login-password", "ລະຫັດຜ່ານ"),
+        dcc.Checklist(
+            id="login-remember",
+            options=[{"label": " ຈົດຈໍາການເຂົ້າສູ່ລະບົບ", "value": "remember"}],
+            value=[],
+            style={"fontSize":"12.5px","color":TX2,"fontFamily":FONT,"marginBottom":"18px"},
+            inputStyle={"marginRight":"6px"},
+        ),
+        html.Div(id="login-msg", style={"minHeight":"6px"}),
+        submit_btn("ເຂົ້າສູ່ລະບົບ", "btn-login", ACCENT),
+        html.Div(style={"textAlign":"center","marginTop":"18px","fontSize":"12.5px","color":TX2,"fontFamily":FONT}, children=[
+            "ບໍ່ມີບັນຊີເຂົ້າສູ່ລະບົບ? ",
+            dcc.Link("ລົງທະບຽນ", href="/register", style={"color":ACCENT,"fontWeight":"600","textDecoration":"underline"}),
         ]),
+    ],
+)
 
-        # ── Register panel ─────────────────────────────────────
-        html.Div(id="form-register", style=HIDE, children=[
-            html.Div("ສ້າງບັນຊີໃໝ່ ", style={
-                "fontSize":"22px","fontWeight":"800","color":"#1E2A3A","fontFamily":FONT,"marginBottom":"4px",
-            }),
-            html.Div("ຕື່ມຂໍ້ມູນລຸ່ມນີ້ເພື່ອສ້າງບັນຊີ", style={
-                "fontSize":"13px","color":TX2,"fontFamily":FONT,"marginBottom":"26px",
-            }),
-            lbl("ອີເມລ"),
-            inp("reg-email", "text", "example@email.com"),
-            lbl("ລະຫັດຜ່ານ (ຢ່າງໜ້ອຍ 6 ຕົວ)"),
-            pw_inp("reg-password"),
-            html.Div(id="pw-strength", style={"marginBottom":"14px","minHeight":"18px"}),
-            lbl("ຢືນຢັນລະຫັດຜ່ານ"),
-            pw_inp("reg-password2", "ພິມລະຫັດຜ່ານຄືນ"),
-            html.Div(id="reg-msg", style={"minHeight":"20px"}),
-            submit_btn("ລົງທະບຽນ", "btn-register", PURPLE),
+# ── Register page ─────────────────────────────────────────────────────────────
+register_layout = page_shell(
+    location_id="register-url",
+    header_children=[
+        html.Div("ລົງທະບຽນ", style={
+            "textAlign":"center","fontSize":"15px","fontWeight":"700","color":PURPLE,
+            "fontFamily":FONT,"margin":"4px 36px 0","padding":"12px 0",
+            "borderBottom":f"2.5px solid {PURPLE}",
+        }),
+    ],
+    body_children=[
+        html.Div(style={"height":"10px"}),
+        inp("reg-email", "text", "ອີເມລ"),
+        pw_inp("reg-password", "ລະຫັດຜ່ານ (ຢ່າງໜ້ອຍ 6 ຕົວ)"),
+        html.Div(id="pw-strength", style={"marginBottom":"10px","minHeight":"18px"}),
+        pw_inp("reg-password2", "ຢືນຢັນລະຫັດຜ່ານ"),
+        html.Div(id="reg-msg", style={"minHeight":"6px"}),
+        submit_btn("ລົງທະບຽນ", "btn-register", PURPLE),
+        html.Div(style={"textAlign":"center","marginTop":"18px","fontSize":"12.5px","color":TX2,"fontFamily":FONT}, children=[
+            "ມີບັນຊີແລ້ວ? ",
+            dcc.Link("ເຂົ້າສູ່ລະບົບ", href="/login", style={"color":PURPLE,"fontWeight":"600","textDecoration":"underline"}),
         ]),
-    ]),
-
-    # Footer
-    html.Div("© 2025 ມະຫາວິທະຍາໄລແຫ່ງຊາດ · ພັດທະນາໂດຍ CS Department", style={
-        "marginTop":"24px","fontSize":"11px","color":"rgba(80,100,140,.35)",
-        "fontFamily":FONT,"position":"relative","zIndex":"1",
-    }),
-
-])
+    ],
+)
 
 # ── Callbacks ─────────────────────────────────────────────────────────────────
 def register_callbacks(app):
-
-    # Tab toggle
-    @app.callback(
-        Output("form-login",    "style"),
-        Output("form-register", "style"),
-        Output("tab-login",     "style"),
-        Output("tab-register",  "style"),
-        Input("tab-login",    "n_clicks"),
-        Input("tab-register", "n_clicks"),
-        prevent_initial_call=True,
-    )
-    def toggle_tab(n1, n2):
-        trig = callback_context.triggered[0]["prop_id"].split(".")[0]
-        if trig == "tab-register":
-            return HIDE, SHOW, TAB_OFF, TAB_ON
-        return SHOW, HIDE, TAB_ON, TAB_OFF
 
     # Show/hide passwords
     @app.callback(
@@ -264,7 +214,7 @@ def register_callbacks(app):
         elif s==3: c,t,w = YELLOW, "ປານກາງ", "58%"
         else:      c,t,w = GREEN,  "ແຂງແຮງ", "100%"
         return html.Div(style={"display":"flex","alignItems":"center","gap":"10px"}, children=[
-            html.Div(style={"flex":"1","height":"4px","background":"rgba(255,255,255,.08)","borderRadius":"2px"}, children=[
+            html.Div(style={"flex":"1","height":"4px","background":"#E8EBF0","borderRadius":"2px"}, children=[
                 html.Div(style={"width":w,"height":"100%","background":c,"borderRadius":"2px","transition":"width .3s"})
             ]),
             html.Span(t, style={"fontSize":"11px","color":c,"fontFamily":FONT,"fontWeight":"600","minWidth":"52px"}),
@@ -287,19 +237,17 @@ def register_callbacks(app):
             return err("ຮູບແບບອີເມລບໍ່ຖືກຕ້ອງ")
         if not pw:
             return err("ກະລຸນາໃສ່ລະຫັດຜ່ານ")
-        ok, msg = auth.login_user(email.strip(), pw)
+        ok, role_or_msg = auth.login_user(email.strip(), pw)
         if ok:
             flask_session['email'] = email.lower().strip()
+            flask_session['role'] = role_or_msg
             return alert_box("ເຂົ້າສູ່ລະບົບສໍາເລັດ ✓", "success"), "/dashboard"
-        return err(msg)
+        return err(role_or_msg)
 
     # Register
     @app.callback(
-        Output("reg-msg",       "children"),
-        Output("form-login",    "style", allow_duplicate=True),
-        Output("form-register", "style", allow_duplicate=True),
-        Output("tab-login",     "style", allow_duplicate=True),
-        Output("tab-register",  "style", allow_duplicate=True),
+        Output("reg-msg",     "children"),
+        Output("register-url", "href"),
         Input("btn-register", "n_clicks"),
         State("reg-email",     "value"),
         State("reg-password",  "value"),
@@ -307,7 +255,7 @@ def register_callbacks(app):
         prevent_initial_call=True,
     )
     def do_register(n, email, pw, pw2):
-        def err(m): return alert_box(m), no_update, no_update, no_update, no_update
+        def err(m): return alert_box(m), no_update
         if not email or not email.strip():
             return err("ກະລຸນາໃສ່ອີເມລ")
         if not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', email.strip()):
@@ -322,6 +270,5 @@ def register_callbacks(app):
             return err("ລະຫັດຜ່ານທັງສອງບໍ່ຕົງກັນ ❌")
         ok, msg = auth.register_user(email.strip(), pw)
         if ok:
-            return (alert_box("ລົງທະບຽນສໍາເລັດ! ກະລຸນາເຂົ້າສູ່ລະບົບ ✓", "success"),
-                    SHOW, HIDE, TAB_ON, TAB_OFF)
+            return alert_box("ລົງທະບຽນສໍາເລັດ! ກະລຸນາເຂົ້າສູ່ລະບົບ ✓", "success"), no_update
         return err(msg)

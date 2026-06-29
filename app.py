@@ -17,11 +17,15 @@ app.index_string = """<!DOCTYPE html>
     <meta name="apple-mobile-web-app-capable" content="yes">
     
     <link rel="icon" href="/assets/Logo_NUOL-ORiginal.png" type="image/png">
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@300;400;500;600;700&display=swap">
+
     {%css%}
     
 <style>
 * { box-sizing: border-box; }
+html, body { overflow-x: hidden; max-width: 100vw; }
 .mobile-nav {
     display: none; position: fixed;
     bottom: 0; left: 0; right: 0; height: 62px;
@@ -37,7 +41,8 @@ app.index_string = """<!DOCTYPE html>
     padding: 6px 8px; border-radius: 10px; transition: all .2s; flex: 1;
 }
 .mobile-nav a.active { color: #1565C0; background: #EEF3FB; }
-.mobile-nav .nav-icon { font-size: 22px; line-height: 1; }
+.mobile-nav .nav-icon { width: 22px; height: 22px; object-fit: contain; opacity: .6; }
+.mobile-nav a.active .nav-icon { opacity: 1; }
 .mobile-nav .nav-label { font-size: 9px; font-weight: 600; }
 .mobile-header {
     display: none; position: fixed; top: 0; left: 0; right: 0;
@@ -77,15 +82,20 @@ app.title = "ລະບົບວິເຄາະແນວໂນ້ມຜົນກ�
 
 # ── Sidebar (white, for dashboard pages) ──────────────────────────────────────
 NAV = [
-    {'href': '/dashboard', 'label': 'Dashboard'},
-    {'href': '/search',  'label': 'ຄົ້ນຫານັກສຶກສາ'},
-    {'href': '/predict', 'label': 'ທຳນາຍ GPA'},
-    {'href': '/admin',   'label': 'Admin'},
+    {'href': '/dashboard', 'label': 'Dashboard',        'icon': '/assets/home.png'},
+    {'href': '/search',    'label': 'ຄົ້ນຫານັກສຶກສາ', 'icon': '/assets/magnifying-glass-search.png'},
+    {'href': '/predict',   'label': 'ຄາດຄະເນ GPA',        'icon': '/assets/predictive-modeling.png'},
+    {'href': '/admin',     'label': 'Admin',             'icon': '/assets/settings.png'},
 ]
+
+SIDEBAR_W = 200
 
 def sidebar(active):
     items = []
+    is_admin = flask_session.get('role') == 'admin'
     for nav in NAV:
+        if nav['href'] == '/admin' and not is_admin:
+            continue
         is_a = nav['href'] == active
         items.append(dcc.Link(
             html.Div(style={
@@ -94,18 +104,22 @@ def sidebar(active):
                 'background':'#EEF3FB' if is_a else 'transparent',
                 'margin':'2px 8px',
             }, children=[
+                html.Img(src=nav['icon'], style={
+                    'width':'18px','height':'18px','objectFit':'contain','flexShrink':'0',
+                    'filter':'none' if is_a else 'opacity(.65)',
+                }),
                 html.Span(nav['label'], style={
                     'fontSize':'13px',
                     'fontWeight':'600' if is_a else '400',
                     'color': db.BLUE if is_a else db.TX,
                     'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif',
-                })
+                }),
             ]),
             href=nav['href'], style={'textDecoration':'none'}
         ))
 
     return html.Div(style={
-        'width':'200px','minHeight':'100vh','background':'white',
+        'width':f'{SIDEBAR_W}px','minHeight':'100vh','background':'white',
         'borderRight':f'1px solid {db.BD}','display':'flex',
         'flexDirection':'column','position':'fixed','top':'0','left':'0','zIndex':'200',
     }, children=[
@@ -154,7 +168,7 @@ def sidebar(active):
                     'fontSize':'12px','fontWeight':'600','cursor':'pointer',
                     'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif',
                 }),
-                href='/do-logout', style={'textDecoration':'none'}
+                href='/do-logout', refresh=True, style={'textDecoration':'none'}
             ),
         ]),
     ])
@@ -175,10 +189,8 @@ app.layout = html.Div(style={
 }, children=[
     # No dcc.Store — ใช้ Flask session แทน
     html.Div(id='sidebar-slot'),
-    dcc.Location(id='url', refresh=True),
+    dcc.Location(id='url', refresh=False),
     html.Div(id='page-content'),
-    html.Link(rel='stylesheet',
-              href='https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@300;400;500;600;700&display=swap'),
 ])
 
 # ── Router ────────────────────────────────────────────────────────────────────
@@ -190,9 +202,11 @@ app.layout = html.Div(style={
 def router(path):
     path = path or '/login'
 
-    # Login page
+    # Login / Register pages
     if path in ('/login', '/', '/logout'):
         return login_page.layout, html.Div()
+    if path == '/register':
+        return login_page.register_layout, html.Div()
 
     # Protected pages — เช็ค Flask session
     dashboard_pages = {
@@ -205,17 +219,24 @@ def router(path):
         # ไม่มี session → กลับ login
         if not flask_session.get('email'):
             return login_page.layout, html.Div()
+        # หน้า admin ต้องมี role=admin เท่านั้น
+        if path == '/admin' and flask_session.get('role') != 'admin':
+            return html.Div('🚫 ທ່ານບໍ່ມີສິດເຂົ້າໜ້ານີ້', style={
+                'padding':'40px','textAlign':'center','color':db.RED,
+                'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif','fontSize':'16px',
+            }), sidebar('/dashboard')
         # มี session → แสดงหน้า
         # Mobile bottom nav
         nav_items = [
-            ('/dashboard', '📊', 'Dashboard'),
-            ('/search',    '🔍', 'ຄົ້ນຫາ'),
-            ('/predict',   '📈', 'ທຳນາຍ'),
-            ('/admin',     '⚙️', 'Admin'),
+            ('/dashboard', '/assets/home.png', 'Dashboard'),
+            ('/search',    '/assets/magnifying-glass-search.png', 'ຄົ້ນຫາ'),
+            ('/predict',   '/assets/predictive-modeling.png', 'ຄາດຄະເນ'),
         ]
+        if flask_session.get('role') == 'admin':
+            nav_items.append(('/admin', '/assets/settings.png', 'Admin'))
         mobile_nav = html.Div(className='mobile-nav', children=[
-            html.A([
-                html.Span(icon, className='nav-icon'),
+            dcc.Link([
+                html.Img(src=icon, className='nav-icon'),
                 html.Span(label, className='nav-label'),
             ], href=href, className='active' if href == path else '')
             for href, icon, label in nav_items
@@ -228,11 +249,11 @@ def router(path):
             ]),
         ])
         page = html.Div(style={
-            'marginLeft':'200px','flex':'1','minWidth':'0',
+            'marginLeft':f'{SIDEBAR_W}px','flex':'1','minWidth':'0',
             'background':'#F5F6FA','minHeight':'100vh'
         }, children=[
             mobile_header,
-            dashboard_pages[path],
+            dashboard_pages[path](),
             mobile_nav,
         ])
         return page, sidebar(path)
@@ -240,7 +261,24 @@ def router(path):
     return login_page.layout, html.Div()
 
 # ── Flask Routes ──────────────────────────────────────────────────────────────
-from flask import send_file
+from functools import wraps
+from flask import send_file, abort
+
+def login_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not flask_session.get('email'):
+            return abort(401)
+        return fn(*args, **kwargs)
+    return wrapper
+
+def admin_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if flask_session.get('role') != 'admin':
+            return abort(403)
+        return fn(*args, **kwargs)
+    return wrapper
 
 @app.server.route('/do-logout')
 def do_logout():
@@ -250,6 +288,8 @@ def do_logout():
 import io, pandas as pd
 
 @app.server.route('/export/students')
+@login_required
+@admin_required
 def export_students():
     buf = io.BytesIO()
     with pd.ExcelWriter(buf, engine='openpyxl') as w:
@@ -259,6 +299,8 @@ def export_students():
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 @app.server.route('/export/subjects')
+@login_required
+@admin_required
 def export_subjects():
     buf = io.BytesIO()
     with pd.ExcelWriter(buf, engine='openpyxl') as w:
@@ -268,6 +310,8 @@ def export_subjects():
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 @app.server.route('/export/scores')
+@login_required
+@admin_required
 def export_scores():
     buf = io.BytesIO()
     with pd.ExcelWriter(buf, engine='openpyxl') as w:
@@ -277,6 +321,7 @@ def export_scores():
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 @app.server.route('/export/<student_code>')
+@login_required
 def export_excel(student_code):
     sc = db.df[db.df['student_code'] == student_code][
         ['semester','sem_order','subject_code','subject_name','grade','grade_point']
@@ -288,6 +333,18 @@ def export_excel(student_code):
     buf.seek(0)
     return send_file(buf, as_attachment=True,
                      download_name=f'{student_code}_grades.xlsx',
+                     mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+@app.server.route('/download-backup/<filename>')
+@login_required
+@admin_required
+def download_backup(filename):
+    safe_name = os.path.basename(filename)  # ป้องกัน path traversal เช่น ../../
+    backup_dir = os.path.join(os.path.dirname(__file__), 'backups')
+    path = os.path.join(backup_dir, safe_name)
+    if not safe_name.endswith('.xlsx') or not os.path.isfile(path):
+        return abort(404)
+    return send_file(path, as_attachment=True, download_name=safe_name,
                      mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 # ── Run ───────────────────────────────────────────────────────────────────────

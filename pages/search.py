@@ -5,10 +5,19 @@ import db
 LAO = {'fontFamily': 'Noto Sans Lao,Segoe UI,Arial,sans-serif'}
 sem_order_map = {s: i+1 for i, s in enumerate(db.sem_order)}
 
-layout = html.Div(style={'padding': '28px 32px', 'background': db.PAGE, 'minHeight': '100vh'}, children=[
+def _student_opts():
+    return [
+        {'label': f"{r['student_code']}  ·  {'ຊາຍ' if r['gender']=='M' else 'ຍິງ'}",
+         'value': r['student_code']}
+        for _, r in db.df_student.sort_values('student_code').iterrows()
+    ]
+
+
+def layout():
+    return html.Div(style={'padding': '28px 32px', 'background': db.PAGE, 'minHeight': '100vh'}, children=[
     html.Div(style={'marginBottom': '24px'}, children=[
         html.Div('ຄົ້ນຫານັກສຶກສາ', style={'fontSize': '22px', 'fontWeight': '700', 'color': db.TX2}),
-        html.Div('ເລືອກລະຫັດ ນ.ສ ແລະ ກັ່ນຕອງຕາມພາກ ເພື່ອເບິ່ງ GPA Trend ແລະ ເກຣດທຸກວິຊາ',
+        html.Div('ເລືອກລະຫັດ ນ.ສ ເພື່ອເບິ່ງ GPA Trend ທຸກພາກ ແລະ ເກຣດທຸກວິຊາ',
                  style={**LAO, 'fontSize': '13px', 'color': db.TX, 'marginTop': '4px'}),
     ]),
     html.Div(style=db.card_style('#6A1B9A'), children=[
@@ -18,13 +27,12 @@ layout = html.Div(style={'padding': '28px 32px', 'background': db.PAGE, 'minHeig
         # ── ຄົ້ນຫາ ນ.ສ ──────────────────────────────────────
         dcc.Dropdown(
             id='search-dd',
-            options=[],
+            options=_student_opts(),
             placeholder='ຄົ້ນຫາ... ເຊັ່ນ 205N0001.19',
             searchable=True, clearable=True,
+            persistence=True, persistence_type='memory',
             style={'fontSize': '13px', 'marginBottom': '12px'}
         ),
-
-        html.Div(id='search-sem-only', style={'display':'none'}),
 
         html.Div(id='search-result', style={'marginTop': '8px'})
     ]),
@@ -32,15 +40,6 @@ layout = html.Div(style={'padding': '28px 32px', 'background': db.PAGE, 'minHeig
 
 
 def register_callbacks(app):
-
-    # โหลด options แบบ dynamic
-    @app.callback(Output('search-dd', 'options'), Input('search-dd', 'search_value'))
-    def update_opts(_):
-        return [
-            {'label': f"{r['student_code']}  ·  {'ຊາຍ' if r['gender']=='M' else 'ຍິງ'}",
-             'value': r['student_code']}
-            for _, r in db.df_student.sort_values('student_code').iterrows()
-        ]
 
     @app.callback(
         Output('search-result', 'children'),

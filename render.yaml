@@ -15,3 +15,7 @@ services:
         sync: false
       - key: DB_NAME
         value: school_db
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: PASSWORD_SALT
+        sync: false

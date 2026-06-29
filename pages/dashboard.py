@@ -59,44 +59,6 @@ fig_grade.update_layout(**B(280), bargap=0.3)
 fig_grade.update_xaxes(**xax(), title_text='ເກຣດ')
 fig_grade.update_yaxes(**yax(), title_text='ຈຳນວນ')
 
-# Subject
-# ── Top 10 ยากที่สุด / ง่ายที่สุด ────────────────────────
-top_hard = db.subj_avg.head(10).copy()
-top_hard['label'] = top_hard['label'].str[:30]
-top_easy = db.subj_avg.tail(10).sort_values('avg_gp', ascending=True).copy()
-top_easy['label'] = top_easy['label'].str[:30]
-
-fig_hard = go.Figure()
-fig_hard.add_trace(go.Bar(
-    x=top_hard['avg_gp'], y=top_hard['label'], orientation='h',
-    marker_color='#C62828', marker_line_width=0,
-    text=top_hard['avg_gp'].round(2), textposition='outside',
-    textfont=dict(size=11, color=db.TX),
-    hovertemplate='<b>%{y}</b><br>GP: %{x:.3f}<extra></extra>'
-))
-fig_hard.update_layout(
-    plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
-    height=400, margin=dict(t=24,b=48,l=220,r=60),
-    hoverlabel=dict(bgcolor='white',font_size=13,font_color=db.TX2,bordercolor=db.BD))
-fig_hard.update_xaxes(**yax(), title_text='Avg Grade Point', range=[0, 4.5])
-fig_hard.update_yaxes(**xax(), title_text='', tickfont=dict(size=11))
-
-fig_easy = go.Figure()
-fig_easy.add_trace(go.Bar(
-    x=top_easy['avg_gp'], y=top_easy['label'], orientation='h',
-    marker_color='#2E7D32', marker_line_width=0,
-    text=top_easy['avg_gp'].round(2), textposition='outside',
-    textfont=dict(size=11, color=db.TX),
-    hovertemplate='<b>%{y}</b><br>GP: %{x:.3f}<extra></extra>'
-))
-fig_easy.update_layout(
-    plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
-    height=400, margin=dict(t=24,b=48,l=220,r=60),
-    hoverlabel=dict(bgcolor='white',font_size=13,font_color=db.TX2,bordercolor=db.BD))
-fig_easy.update_xaxes(**yax(), title_text='Avg Grade Point', range=[0, 4.5])
-fig_easy.update_yaxes(**xax(), title_text='', tickfont=dict(size=11))
-
-
 # Heatmap
 if len(db.hp) > 0:
     fig_heat = px.imshow(db.hp, color_continuous_scale='YlOrRd', aspect='auto',
@@ -178,7 +140,8 @@ major_options = [
 ]
 
 # ── Layout ────────────────────────────────────────────────
-layout = html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':'100vh'}, children=[
+def layout():
+    return html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':'100vh'}, children=[
 
     html.Div(style={'marginBottom':'24px','display':'flex',
                     'justifyContent':'space-between','alignItems':'center'}, children=[
@@ -190,6 +153,7 @@ layout = html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':
         ]),
         dcc.Dropdown(id='dash-major-filter', options=major_options,
             value='all', clearable=False,
+            persistence=True, persistence_type='memory',
             style={'fontSize':'13px','minWidth':'200px'})
     ]),
 
@@ -239,10 +203,10 @@ layout = html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':
     html.Div(style={'display':'grid','gridTemplateColumns':'1fr 1fr','gap':'20px','marginBottom':'20px'}, children=[
         card('🔴 Top 10 ວິຊາທີ່ຍາກທີ່ສຸດ',
              'ວິຊາທີ່ ນ.ສ ໄດ້ຄະແນນສະເລ່ຍຕ່ຳທີ່ສຸດ 10 ວິຊາ',
-             [dcc.Graph(figure=fig_hard,config={'displayModeBar':False})],accent=db.RED),
+             [dcc.Graph(id='dash-hard', config={'displayModeBar':False})],accent=db.RED),
         card('🟢 Top 10 ວິຊາທີ່ງ່າຍທີ່ສຸດ',
              'ວິຊາທີ່ນ.ສ ໄດ້ຄະແນນສະເລ່ຍສູງທີ່ສຸດ 10 ວິຊາ',
-             [dcc.Graph(figure=fig_easy,config={'displayModeBar':False})],accent=db.GREEN),
+             [dcc.Graph(id='dash-easy', config={'displayModeBar':False})],accent=db.GREEN),
     ]),
 
     # Scatter Plot
@@ -263,6 +227,8 @@ def register_callbacks(app):
         Output('dash-scatter','figure'),
         Output('dash-donut','figure'),
         Output('dash-cluster-stats','children'),
+        Output('dash-hard','figure'),
+        Output('dash-easy','figure'),
         Input('dash-major-filter','value')
     )
     def update_charts(major):
@@ -421,4 +387,45 @@ def register_callbacks(app):
             ]),
         ]
 
-        return ft, fg, fgd, fsc, fd, cluster_stats
+        # Top 10 hardest / easiest subjects (filtered by major)
+        subj_avg_f = (dff.groupby(['subject_code','subject_name'])['grade_point']
+                        .mean().reset_index(name='avg_gp').sort_values('avg_gp'))
+        subj_avg_f['avg_gp'] = subj_avg_f['avg_gp'].round(3)
+        subj_avg_f['label'] = subj_avg_f['subject_code'] + '   ' + subj_avg_f['subject_name'].str[:28]
+
+        top_hard_f = subj_avg_f.head(10).copy()
+        top_hard_f['label'] = top_hard_f['label'].str[:30]
+        top_easy_f = subj_avg_f.tail(10).sort_values('avg_gp', ascending=True).copy()
+        top_easy_f['label'] = top_easy_f['label'].str[:30]
+
+        fh = go.Figure()
+        fh.add_trace(go.Bar(
+            x=top_hard_f['avg_gp'], y=top_hard_f['label'], orientation='h',
+            marker_color='#C62828', marker_line_width=0,
+            text=top_hard_f['avg_gp'].round(2), textposition='outside',
+            textfont=dict(size=11, color=db.TX),
+            hovertemplate='<b>%{y}</b><br>GP: %{x:.3f}<extra></extra>'
+        ))
+        fh.update_layout(
+            plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
+            height=400, margin=dict(t=24,b=48,l=220,r=60),
+            hoverlabel=dict(bgcolor='white',font_size=13,font_color=db.TX2,bordercolor=db.BD))
+        fh.update_xaxes(**yax(), title_text='Avg Grade Point', range=[0, 4.5])
+        fh.update_yaxes(**xax(), title_text='', tickfont=dict(size=11))
+
+        fe = go.Figure()
+        fe.add_trace(go.Bar(
+            x=top_easy_f['avg_gp'], y=top_easy_f['label'], orientation='h',
+            marker_color='#2E7D32', marker_line_width=0,
+            text=top_easy_f['avg_gp'].round(2), textposition='outside',
+            textfont=dict(size=11, color=db.TX),
+            hovertemplate='<b>%{y}</b><br>GP: %{x:.3f}<extra></extra>'
+        ))
+        fe.update_layout(
+            plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
+            height=400, margin=dict(t=24,b=48,l=220,r=60),
+            hoverlabel=dict(bgcolor='white',font_size=13,font_color=db.TX2,bordercolor=db.BD))
+        fe.update_xaxes(**yax(), title_text='Avg Grade Point', range=[0, 4.5])
+        fe.update_yaxes(**xax(), title_text='', tickfont=dict(size=11))
+
+        return ft, fg, fgd, fsc, fd, cluster_stats, fh, fe
