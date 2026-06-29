@@ -8,90 +8,98 @@
 
 ```
 CS_Dashboard/
-├── app.py                      ← รันตัวนี้เพื่อเปิด Dashboard (Flask + Dash)
-├── db.py                       ← เชื่อมต่อ MySQL + โหลดข้อมูล + K-Means clustering
-├── auth.py                     ← ตรวจสอบ login / hash password (salt จาก .env)
-├── requirements.txt            ← library ที่ต้องติดตั้ง
-├── render.yaml                 ← config สำหรับ deploy บน Render
+├── app.py                      ← ລັນຕົວນີ້ເພື່ອເປີດ Dashboard (Flask + Dash)
+├── db.py                       ← ເຊື່ອມຕໍ່ MySQL + ໂຫຼດຂໍ້ມູນ + K-Means clustering
+├── auth.py                     ← ກວດສອບ login / hash password (salt ຈາກ .env)
+├── requirements.txt            ← library ທີ່ຕ້ອງຕິດຕັ້ງ
+├── render.yaml                 ← config ສຳລັບ deploy ເທິງ Render
 │
 ├── pages/
-│   ├── login.py                ← หน้าเข้าสู่ระบบ
-│   ├── dashboard.py            ← หน้า Dashboard กราฟสรุปรวม
-│   ├── search.py                ← หน้าค้นหานักศึกษารายคน
-│   ├── predict.py              ← หน้าทำนาย GPA (Random Forest + XGBoost)
-│   └── admin.py                ← หน้า Admin: เพิ่ม/ลบ นักศึกษา-วิชา, import .xlsx, reset, backup
+│   ├── login.py                ← ໜ້າເຂົ້າສູ່ລະບົບ / ລົງທະບຽນ
+│   ├── dashboard.py            ← ໜ້າ Dashboard ສະຫຼຸບກຣາຟລວມ
+│   ├── search.py                ← ໜ້າຄົ້ນຫານັກສຶກສາລາຍຄົນ
+│   ├── predict.py              ← ໜ້າຄາດຄະເນ GPA (Random Forest + XGBoost)
+│   └── admin.py                ← ໜ້າ Admin: ເພີ່ມ/ລຶບ ນັກສຶກສາ-ວິຊາ, import .xlsx, reset, backup
 │
-├── ml/                          ← Pipeline การเทรนโมเดลทำนาย GPA
-│   ├── data_prep.py            ← เตรียมข้อมูล + แบ่ง Stage (k=1..7 ภาคที่รู้แล้ว)
-│   ├── train.py                ← เทรน RandomForest + XGBoost (GridSearchCV, K-Fold CV)
-│   └── predictor.py            ← GPAPredictor class — โหลด/ทำนาย/ประเมินผล
+├── ml/                          ← Pipeline ການເທຣນແບບຈຳລອງຄາດຄະເນ GPA
+│   ├── data_prep.py            ← ກະກຽມຂໍ້ມູນ + ແບ່ງ Stage (k=1..7 ພາກທີ່ຮູ້ແລ້ວ)
+│   ├── train.py                ← ເທຣນ RandomForest + XGBoost (GridSearchCV, K-Fold CV)
+│   └── predictor.py            ← GPAPredictor class — ໂຫຼດ/ຄາດຄະເນ/ປະເມີນຜົນ
 │
-├── models/                      ← ไฟล์โมเดลที่เทรนแล้ว (gpa_predictor.pkl)
-├── backups/                     ← ไฟล์ backup .xlsx (สร้างอัตโนมัติก่อน Reset)
-├── assets/                      ← รูปภาพ, ไอคอน, mobile.css
+├── models/                      ← ໄຟລ໌ແບບຈຳລອງທີ່ເທຣນແລ້ວ (gpa_predictor.pkl)
+├── backups/                     ← ໄຟລ໌ backup .xlsx (ສ້າງອັດຕະໂນມັດກ່ອນ Reset)
+├── assets/                      ← ຮູບພາບ, ໄອຄອນ, mobile.css
+├── report_figures/              ← ກຣາຟ/ຮູບທີ່ export ໄວ້ສຳລັບໃສ່ໃນບົດລາຍງານ
 │
 └── scripts/
-    ├── setup_db.py              ← สร้างตาราง MySQL ครั้งแรก
-    ├── import_csv.py            ← import ข้อมูลจาก CSV (ใช้ตอน setup เริ่มต้นเท่านั้น)
-    ├── train_model.py           ← เทรนโมเดลทำนาย GPA ใหม่จากฐานข้อมูลปัจจุบัน
-    ├── find_optimal_k.py        ← หาจำนวนกลุ่ม (k) ที่เหมาะสมสำหรับ K-Means
-    └── export_report_figures.py ← export กราฟ/รูปสำหรับใส่ในรายงาน
+    ├── setup_db.py                    ← ສ້າງຕາຕະລາງ MySQL ຄັ້ງທຳອິດ
+    ├── import_csv.py                  ← import ຂໍ້ມູນຈາກ CSV (ໃຊ້ຕອນ setup ເລີ່ມຕົ້ນເທົ່ານັ້ນ)
+    ├── train_model.py                 ← ເທຣນແບບຈຳລອງຄາດຄະເນ GPA ໃໝ່ຈາກຖານຂໍ້ມູນປັດຈຸບັນ
+    ├── find_optimal_k.py              ← ຊອກຫາຈຳນວນກຸ່ມ (k) ທີ່ເໝາະສົມສຳລັບ K-Means
+    ├── export_report_figures.py       ← export ກຣາຟຈາກ Dashboard (heatmap, correlation, donut, ...)
+    ├── export_model_eval_figures.py   ← export ກຣາຟ Scatter ແລະ Feature Importance ຂອງ RF/XGBoost
+    ├── export_colab_style_fig.py      ← export ຮູບສະຕາຍ Colab (ໂຄ້ດ + ຜົນຮັບ) ສຳລັບບົດລາຍງານ
+    ├── export_donut_code_fig.py       ← export ຮູບສະຕາຍ VS Code ຂອງໂຄ້ດ Donut Chart
+    ├── export_kmeans_trend_fig.py     ← export ກຣາຟແນວໂນ້ມ GPA ຕາມກຸ່ມ K-Means
+    └── nested_cv_eval.py              ← ປະເມີນ Nested Cross-Validation ກວດສອບຄວາມໜ້າເຊື່ອຖືຂອງຄ່າ RMSE/MAE
 ```
 
-> ⚠️ การ import ข้อมูลนักศึกษา/คะแนนประจำวันให้ทำผ่าน**หน้า Admin ในระบบ** (อัปโหลดไฟล์ `.xlsx`) ไม่ต้องใช้ `scripts/import_csv.py` แล้ว — สคริปต์นี้เก็บไว้สำหรับตอน setup ฐานข้อมูลใหม่ทั้งหมดเท่านั้น
+> ⚠️ ການ import ຂໍ້ມູນນັກສຶກສາ/ຄະແນນປະຈຳວັນໃຫ້ເຮັດຜ່ານ**ໜ້າ Admin ໃນລະບົບ** (ອັປໂຫຼດໄຟລ໌ `.xlsx`) ບໍ່ຕ້ອງໃຊ້ `scripts/import_csv.py` ແລ້ວ — ສະຄຣິບນີ້ເກັບໄວ້ສຳລັບຕອນ setup ຖານຂໍ້ມູນໃໝ່ທັງໝົດເທົ່ານັ້ນ
 
 ---
 
-## ขั้นตอนการใช้งาน (ติดตั้งครั้งแรก)
+## ຂັ້ນຕອນການນຳໃຊ້ (ຕິດຕັ້ງຄັ້ງທຳອິດ)
 
-### 1. ติดตั้ง Library
+### 1. ຕິດຕັ້ງ Library
 ```
 pip install -r requirements.txt
 ```
 
-### 2. เปิด XAMPP แล้ว Start MySQL
+### 2. ເປີດ XAMPP ແລ້ວ Start MySQL
 
-### 3. สร้างไฟล์ `.env` ที่ root โปรเจกต์
+### 3. ສ້າງໄຟລ໌ `.env` ທີ່ root ໂປຣເຈັກ
+
 ```
 DB_HOST=localhost
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=
 DB_NAME=school_db
-FLASK_SECRET_KEY=ใส่ค่าสุ่มของตัวเอง
-PASSWORD_SALT=ใส่ค่าสุ่มของตัวเอง
+FLASK_SECRET_KEY=ໃສ່ຄ່າສຸ່ມຂອງຕົນເອງ
+PASSWORD_SALT=ໃສ່ຄ່າສຸ່ມຂອງຕົນເອງ
 ```
 
-### 4. สร้างตารางใน MySQL
+### 4. ສ້າງຕາຕະລາງໃນ MySQL
+
 ```
 python scripts/setup_db.py
 ```
 
-### 5. Import ข้อมูลเริ่มต้น (ถ้ามีไฟล์ CSV อยู่แล้ว)
+### 5. Import ຂໍ້ມູນເລີ່ມຕົ້ນ (ຖ້າມີໄຟລ໌ CSV ຢູ່ແລ້ວ)
 ```
 python scripts/import_csv.py
 ```
-สำหรับการเพิ่มข้อมูลรอบถัดไป ให้อัปโหลดไฟล์ `.xlsx` ผ่านหน้า **Admin** ในระบบแทน
+ສຳລັບການເພີ່ມຂໍ້ມູນຮອບຖັດໄປ ໃຫ້ອັປໂຫຼດໄຟລ໌ `.xlsx` ຜ່ານໜ້າ **Admin** ໃນລະບົບແທນ
 
-### 6. เทรนโมเดลทำนาย GPA (ครั้งแรก หรือหลังข้อมูลเปลี่ยน)
+### 6. ເທຣນແບບຈຳລອງຄາດຄະເນ GPA (ຄັ້ງທຳອິດ ຫຼື ຫຼັງຂໍ້ມູນປ່ຽນ)
 
 ```
 python scripts/train_model.py
 ```
 
-(หน้า Admin ก็มีปุ่ม "🏆 ເທຣນໂມເດລໃໝ່ທັງໝົด" ให้เทรนใหม่ได้โดยตรงในระบบเช่นกัน)
+(ໜ້າ Admin ກໍ່ມີປຸ່ມ "🏆 ເທຣນໂມເດລໃໝ່ທັງໝົດ" ໃຫ້ເທຣນໃໝ່ໄດ້ໂດຍກົງໃນລະບົບເຊັ່ນກັນ)
 
-### 7. รัน Dashboard
+### 7. ລັນ Dashboard
 ```
 python app.py
 ```
-เปิด Browser ไปที่ http://127.0.0.1:8050
+ເປີດ Browser ໄປທີ່ http://127.0.0.1:8050
 
 ---
 
-## การตั้งค่า Database
+## ການຕັ້ງຄ່າ Database
 
-ค่าทั้งหมดอ่านจากไฟล์ `.env` (ดู [db.py](db.py)) ไม่ฮาร์ดโค้ดในไฟล์โค้ดอีกแล้ว เพื่อความปลอดภัยตอน deploy จริง
+ຄ່າທັງໝົດອ່ານຈາກໄຟລ໌ `.env` (ເບິ່ງ [db.py](db.py)) ບໍ່ Hard-code ໃນໄຟລ໌ໂຄ້ດອີກແລ້ວ ເພື່ອຄວາມປອດໄພຕອນ deploy ຈິງ
 
 ```python
 HOST     = os.environ.get("DB_HOST", "localhost")
@@ -103,13 +111,13 @@ DATABASE = os.environ.get("DB_NAME", "school_db")
 
 ---
 
-## ฟีเจอร์หลักของระบบ
+## ຄຸນສົມບັດຫຼັກຂອງລະບົບ
 
-- **Dashboard** — สรุป KPI รวม, กราฟแนวโน้ม GPA, สัดส่วนกลุ่มเสี่ยง (K-Means)
-- **ค้นหานักศึกษา** — ดู GPA Trend และเกรดทุกวิชาของนักศึกษารายคน
-- **ทำนาย GPA** — ทำนายผลการเรียนภาคที่เหลือจากภาคที่รู้แล้ว ด้วย RandomForest + XGBoost
-- **Admin** — เพิ่ม/ลบนักศึกษา-วิชา, แก้เกรด, import/export Excel, Reset ระบบ (มี backup อัตโนมัติก่อนลบ), ดูประวัติการ import
+- **Dashboard** — ສະຫຼຸບ KPI ລວມ, ກຣາຟແນວໂນ້ມ GPA, ສັດສ່ວນກຸ່ມສ່ຽງ (K-Means)
+- **ຄົ້ນຫານັກສຶກສາ** — ເບິ່ງ GPA Trend ແລະ ເກຣດທຸກວິຊາຂອງນັກສຶກສາລາຍຄົນ
+- **ຄາດຄະເນ GPA** — ຄາດຄະເນຜົນການຮຽນພາກທີ່ເຫຼືອຈາກພາກທີ່ຮູ້ແລ້ວ ດ້ວຍ RandomForest + XGBoost
+- **Admin** — ເພີ່ມ/ລຶບນັກສຶກສາ-ວິຊາ, ແກ້ເກຣດ, import/export Excel, Reset ລະບົບ (ມີ backup ອັດຕະໂນມັດກ່ອນລຶບ), ເບິ່ງປະຫວັດການ import
 
 ## Deploy
 
-โปรเจกต์นี้ตั้งค่าให้ deploy บน [Render](https://render.com) ผ่าน `render.yaml` — ตัวแปร environment (`DB_HOST`, `DB_PASSWORD`, `FLASK_SECRET_KEY`, `PASSWORD_SALT` ฯลฯ) ต้องตั้งค่าใน Render Dashboard เอง ไม่ commit ค่าจริงไว้ในโค้ด
+ໂປຣເຈັກນີ້ຕັ້ງຄ່າໃຫ້ deploy ເທິງ [Render](https://render.com) ຜ່ານ `render.yaml` — ຕົວປ່ຽນ environment (`DB_HOST`, `DB_PASSWORD`, `FLASK_SECRET_KEY`, `PASSWORD_SALT` ຯລຯ) ຕ້ອງຕັ້ງຄ່າໃນ Render Dashboard ເອງ ບໍ່ commit ຄ່າຈິງໄວ້ໃນໂຄ້ດ
