@@ -9,11 +9,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-HOST     = os.environ.get("DB_HOST", "localhost")
-PORT     = int(os.environ.get("DB_PORT", 3306))
-USER     = os.environ.get("DB_USER", "root")
-PASSWORD = os.environ.get("DB_PASSWORD", "")
-DATABASE = os.environ.get("DB_NAME", "school_db")
+HOST     = os.environ.get("DB_HOST", "localhost").strip()
+PORT     = int(os.environ.get("DB_PORT", "3306").strip())
+USER     = os.environ.get("DB_USER", "root").strip()
+PASSWORD = os.environ.get("DB_PASSWORD", "").strip()
+DATABASE = os.environ.get("DB_NAME", "school_db").strip()
 
 engine = sqlalchemy.create_engine(
     f"mysql+pymysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DATABASE}"
