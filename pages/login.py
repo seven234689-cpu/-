@@ -270,5 +270,5 @@ def register_callbacks(app):
             return err("ລະຫັດຜ່ານທັງສອງບໍ່ຕົງກັນ ❌")
         ok, msg = auth.register_user(email.strip(), pw)
         if ok:
-            return alert_box("ລົງທະບຽນສໍາເລັດ! ກະລຸນາເຂົ້າສູ່ລະບົບ ✓", "success"), no_update
+            return alert_box("ລົງທະບຽນສໍາເລັດ! ກະລຸນາເຂົ້າສູ່ລະບົບ ✓", "success"), "/login"
         return err(msg)
