@@ -107,7 +107,7 @@ def _student_opts():
 
 def layout():
     student_opts = _student_opts()
-    return html.Div(style={'padding': '28px 32px', 'background': db.PAGE, 'minHeight': '100vh'}, children=[
+    return html.Div(className='page-wrap', style={'padding': '28px 32px', 'background': db.PAGE, 'minHeight': '100vh'}, children=[
 
     html.Div(style={'marginBottom': '24px'}, children=[
         html.Div('ຄາດຄະເນ GPA', style={'fontSize': '22px', 'fontWeight': '700', 'color': db.TX2}),
@@ -123,7 +123,7 @@ def layout():
         html.Div(style={'display': 'flex', 'flexDirection': 'column', 'gap': '6px'}, children=[
             html.Div('⚠️  ລະບົບນີ້ວິເຄາະໄດ້ພຽງແຕ່ກຸ່ມ (ສູງ / ກາງ / ສ່ຽງ) ເທົ່ານັ້ນ',
                      style={**LAO, 'fontSize': '13px', 'fontWeight': '700', 'color': '#C62828'}),
-            html.Div('⚠️  ຕົວເລກ GPA ທີ່ສະແດງ ແມ່ນພຽງຄ່າປະມານການ ບໍ່ໃຊ່ GPA ທີ່ແນ່ນອນ',
+            html.Div('⚠️  ຕົວເລກ GPA ທີ່ສະແດງ ແມ່ນພຽງຄ່າປະມານການ ບໍ່ແມ່ນ GPA ທີ່ແນ່ນອນ',
                      style={**LAO, 'fontSize': '13px', 'fontWeight': '700', 'color': '#C62828'}),
             html.Div('📊  ຍິ່ງປ້ອນ GPA ຫຼາຍພາກ (k) → ຄາດຄະເນພາກທີ່ເຫຼືອໄດ້ແມ່ນຍຳກວ່າ',
                      style={**LAO, 'fontSize': '12px', 'color': '#B71C1C', 'marginTop': '4px'}),
@@ -148,7 +148,7 @@ def layout():
                          style={'fontSize': '13px'}),
         ]),
 
-        html.Div(style={'display': 'flex', 'gap': '10px', 'marginBottom': '16px'}, children=[
+        html.Div(className='pred-btn-row', style={'display': 'flex', 'gap': '10px', 'marginBottom': '16px'}, children=[
             html.Button('🔍 ວິເຄາະ ນ.ສ ຄົນນີ້', id='pred-load-btn', n_clicks=0,
                         style={'padding': '10px 24px', 'background': db.BLUE, 'color': 'white',
                                'border': 'none', 'borderRadius': '8px', 'fontSize': '13px', 'fontWeight': '600',
@@ -181,10 +181,10 @@ def layout():
                                   for k in range(1, 8)],
                          value=1, clearable=False,
                          persistence=True, persistence_type='memory',
-                         style={'fontSize': '13px', 'maxWidth': '320px'}),
+                         className='pred-k-drop', style={'fontSize': '13px', 'maxWidth': '320px'}),
         ]),
 
-        html.Div(style={'display': 'flex', 'gap': '12px', 'flexWrap': 'wrap', 'marginBottom': '16px'}, children=[
+        html.Div(className='pred-gpa-grid', style={'display': 'flex', 'gap': '12px', 'flexWrap': 'wrap', 'marginBottom': '16px'}, children=[
             html.Div(id=f'pred-sem-{i}-wrap', style={'display': 'none' if i > 1 else 'block'}, children=[
                 html.Label(f'GPA {db.sem_order[i-1]}', style={**LAO, 'fontSize': '11px', 'fontWeight': '600',
                            'color': db.TX, 'display': 'block', 'marginBottom': '4px'}),
@@ -518,7 +518,7 @@ def register_callbacks(app):
                 db.sec_sub('GPA ຕົວຈິງ VS GPA ຄາດຄະເນ · ຂຽວ ≤ 0.3 · ແດງ > 0.3'),
                 html.Div(style={'overflowX': 'auto', 'borderRadius': '10px',
                                 'border': f'1px solid {db.BD}', 'marginTop': '12px'}, children=[
-                    html.Table(style={'width': '100%', 'borderCollapse': 'collapse'}, children=[
+                    html.Table(className='pred-result-table', style={'width': '100%', 'borderCollapse': 'collapse'}, children=[
                         html.Thead(html.Tr(children=header)),
                         html.Tbody(children=rows)
                     ])

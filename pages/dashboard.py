@@ -138,7 +138,7 @@ major_options = [
 
 # ── Layout ────────────────────────────────────────────────
 def layout():
-    return html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':'100vh'}, children=[
+    return html.Div(className='page-wrap', style={'padding':'28px 32px','background':db.PAGE,'minHeight':'100vh'}, children=[
 
     html.Div(style={'marginBottom':'24px','display':'flex',
                     'justifyContent':'space-between','alignItems':'center'}, children=[

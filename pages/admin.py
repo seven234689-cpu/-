@@ -104,7 +104,7 @@ def tbl_style():
 
 
 def layout():
-    return html.Div(style={'padding':'28px 32px','background':db.PAGE,'minHeight':'100vh'}, children=[
+    return html.Div(className='page-wrap', style={'padding':'28px 32px','background':db.PAGE,'minHeight':'100vh'}, children=[
 
     html.Div(style={'marginBottom':'24px'}, children=[
         html.Div('Admin Panel', style={'fontSize':'22px','fontWeight':'700','color':db.TX2}),

@@ -74,11 +74,19 @@ html, body { overflow-x: hidden; max-width: 100vw; }
     .mobile-header { display: flex !important; }
     #page-content { padding-top: 54px; }
     .dash-table-container { overflow-x: auto !important; }
-    input { font-size: 16px !important; }
+    input[type=number], input[type=text], input[type=email], input[type=password] { font-size: 16px !important; }
     .grid-2col { grid-template-columns: 1fr !important; }
     .kpi-row { gap: 8px !important; }
     .kpi-row > div { min-width: calc(50% - 8px) !important; flex: 1 1 calc(50% - 8px) !important; }
-    .js-plotly-plot { min-height: 220px; }
+    .page-wrap { padding: 16px 12px !important; }
+    .pred-btn-row { flex-wrap: wrap !important; }
+    .pred-btn-row button { flex: 1 1 100% !important; }
+    .pred-k-drop { max-width: 100% !important; }
+    .pred-gpa-grid { gap: 8px !important; }
+    .pred-gpa-grid > div { min-width: 0 !important; flex: 1 1 calc(33% - 8px) !important; }
+    .pred-gpa-grid input { width: 100% !important; box-sizing: border-box !important; }
+    .pred-result-table { font-size: 11px !important; }
+    .pred-result-table th, .pred-result-table td { padding: 6px 8px !important; }
 }
 </style>
 
