@@ -131,11 +131,12 @@ layout = page_shell(
         ),
         html.Div(id="login-msg", style={"minHeight":"6px"}),
         submit_btn("ເຂົ້າສູ່ລະບົບ", "btn-login", ACCENT),
-        html.Div(style={"textAlign":"center","marginTop":"18px","fontSize":"12.5px","color":TX2,"fontFamily":FONT,"display":"flex","justifyContent":"center","alignItems":"center","gap":"12px"}, children=[
-            html.Span("ບໍ່ມີບັນຊີເຂົ້າສູ່ລະບົບ? ", style={"display":"inline"}),
-            dcc.Link("ລົງທະບຽນ", href="/register", style={"color":ACCENT,"fontWeight":"600","textDecoration":"underline"}),
-            html.Span("·", style={"color":"#D0D5DD"}),
-            html.Span("v1.0.0", style={"fontSize":"11px","color":"#AEB7C4"}),
+        html.Div(style={"textAlign":"center","marginTop":"18px","fontFamily":FONT}, children=[
+            html.Div(style={"fontSize":"12.5px","color":TX2}, children=[
+                "ບໍ່ມີບັນຊີເຂົ້າສູ່ລະບົບ? ",
+                dcc.Link("ລົງທະບຽນ", href="/register", style={"color":ACCENT,"fontWeight":"600","textDecoration":"underline"}),
+            ]),
+            html.Div("v1.0.0", style={"fontSize":"11px","color":"#AEB7C4","marginTop":"8px"}),
         ]),
     ],
 )
