@@ -201,7 +201,8 @@ def register_callbacks(app):
             ]),
 
             # GPA Trend
-            dcc.Graph(figure=fs, config={'displayModeBar': False}),
+            dcc.Graph(figure=fs, config={'displayModeBar': False},
+                      style={'minHeight': '260px'}, responsive=True),
 
             # ຕາຕະລາງ + Export
             html.Div(style={'display':'flex','justifyContent':'space-between',
@@ -224,7 +225,7 @@ def register_callbacks(app):
             dash_table.DataTable(
                 data=tbl.to_dict('records'),
                 columns=[{'name': c, 'id': c} for c in tbl.columns],
-                style_table={'overflowX':'auto','borderRadius':'10px','overflow':'hidden',
+                style_table={'overflowX':'auto','borderRadius':'10px',
                              'border':f'1px solid {db.BD}'},
                 style_header={
                     'backgroundColor':'#F8FAFD','color':db.TX,'fontWeight':'600',
@@ -233,11 +234,20 @@ def register_callbacks(app):
                     'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif'
                 },
                 style_cell={
-                    'fontSize':'13px','padding':'10px 16px','border':'none',
+                    'fontSize':'13px','padding':'10px 12px','border':'none',
                     'borderBottom':f'1px solid {db.BD}','textAlign':'center',
                     'fontFamily':'Noto Sans Lao,Segoe UI,Arial,sans-serif',
-                    'color':db.TX2,'backgroundColor':'white'
+                    'color':db.TX2,'backgroundColor':'white',
+                    'whiteSpace':'normal','height':'auto','maxWidth':'180px',
+                    'overflow':'hidden','textOverflow':'ellipsis',
                 },
+                style_column_conditional=[
+                    {'if':{'column_id':'ຊື່ວິຊາ'},'textAlign':'left','minWidth':'120px','maxWidth':'200px'},
+                    {'if':{'column_id':'ພາກ'},'minWidth':'50px','maxWidth':'60px'},
+                    {'if':{'column_id':'ລະຫັດ'},'minWidth':'80px','maxWidth':'100px'},
+                    {'if':{'column_id':'ເກຣດ'},'minWidth':'50px','maxWidth':'60px'},
+                    {'if':{'column_id':'ຄະແນນ'},'minWidth':'60px','maxWidth':'70px'},
+                ],
                 style_data={'backgroundColor':'white'},
                 style_data_conditional=[
                     {'if':{'row_index':'odd'},'backgroundColor':'#FAFBFD'},
