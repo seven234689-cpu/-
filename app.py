@@ -107,9 +107,13 @@ html, body { overflow-x: hidden; max-width: 100vw; }
     }
     .kpi-row > div > div:nth-child(2) { font-size: 22px !important; }
     .kpi-row > div > div:last-child { font-size: 10px !important; margin-top: 3px !important; }
-    .login-page { padding: 0 !important; justify-content: center !important; }
-    .login-card { max-width: 100% !important; border-radius: 0 !important; border: none !important; box-shadow: none !important; min-height: 100vh; }
-    .login-card-body { padding: 8px 24px 32px !important; }
+    .login-page { padding: 0 !important; justify-content: flex-start !important; min-height: 100vh !important; }
+    .login-card { max-width: 100% !important; border-radius: 0 !important; border: none !important; box-shadow: none !important; min-height: 100vh !important; display: flex !important; flex-direction: column !important; justify-content: center !important; }
+    .login-card .login-logo { width: 72px !important; height: 72px !important; margin-bottom: 6px !important; }
+    .login-card-body { padding: 4px 24px 20px !important; }
+    .login-header-top { padding: 20px 24px 6px !important; }
+    .login-header-top .login-title { font-size: 16px !important; }
+    .login-header-top .login-sub { font-size: 12px !important; }
 }
 </style>
 
