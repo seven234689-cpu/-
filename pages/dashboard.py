@@ -173,13 +173,11 @@ def layout():
         html.Div(style=db.card_style(db.BLUE), children=[
             db.sec_title('ການກະຈາຍຂອງເກຣດ'),
             db.sec_sub('ຈຳນວນນ.ສ ທີ່ໄດ້ເກຣດແຕ່ລະລະດັບ'),
-            dcc.Graph(id='dash-grade', config={'displayModeBar':False},
-                      style={'height':'300px'}, responsive=True)
+            dcc.Graph(id='dash-grade', config={'displayModeBar':False})
         ]),
         card('ການຈັດກຸ່ມ (K-Means)','ແບ່ງ 3 ກຸ່ມ: ສູງ / ກາງ / ສ່ຽງ',
              [
-                 dcc.Graph(id='dash-donut', config={'displayModeBar':False},
-                           style={'height':'320px'}, responsive=True),
+                 dcc.Graph(id='dash-donut', config={'displayModeBar':False}),
                  html.Div(id='dash-cluster-stats', style={'display':'flex','gap':'8px','marginTop':'8px','flexWrap':'wrap'})
              ], accent=db.GREEN),
     ]),
@@ -189,33 +187,28 @@ def layout():
         html.Div(style=db.card_style(db.BLUE), children=[
             db.sec_title('ແນວໂນ້ມ GPA ລາຍພາກ'),
             db.sec_sub('GPA ສະເລ່ຍຂອງນ.ສ ທຸກຄົນ ຕາມພາກຮຽນ'),
-            dcc.Graph(id='dash-trend', config={'displayModeBar':False},
-                      style={'height':'300px'}, responsive=True)
+            dcc.Graph(id='dash-trend', config={'displayModeBar':False})
         ]),
         html.Div(style=db.card_style('#6A1B9A'), children=[
             db.sec_title('GPA ປຽບທຽບ ຊາຍ vs ຍິງ'),
             db.sec_sub('ທ່ວງໂນ້ມ GPA ແຍກຕາມເພດ'),
-            dcc.Graph(id='dash-gender', config={'displayModeBar':False},
-                      style={'height':'300px'}, responsive=True)
+            dcc.Graph(id='dash-gender', config={'displayModeBar':False})
         ]),
     ]),
 
     html.Div(className='grid-2col', children=[
         card('🔴 Top 10 ວິຊາທີ່ຍາກທີ່ສຸດ',
              'ວິຊາທີ່ ນ.ສ ໄດ້ຄະແນນສະເລ່ຍຕ່ຳທີ່ສຸດ 10 ວິຊາ',
-             [dcc.Graph(id='dash-hard', config={'displayModeBar':False},
-                        style={'height':'340px'}, responsive=True)], accent=db.RED),
+             [dcc.Graph(id='dash-hard', config={'displayModeBar':False})], accent=db.RED),
         card('🟢 Top 10 ວິຊາທີ່ງ່າຍທີ່ສຸດ',
              'ວິຊາທີ່ນ.ສ ໄດ້ຄະແນນສະເລ່ຍສູງທີ່ສຸດ 10 ວິຊາ',
-             [dcc.Graph(id='dash-easy', config={'displayModeBar':False},
-                        style={'height':'340px'}, responsive=True)], accent=db.GREEN),
+             [dcc.Graph(id='dash-easy', config={'displayModeBar':False})], accent=db.GREEN),
     ]),
 
     # Scatter Plot
     card('ການກະຈາຍ GPA ລາຍຄົນ (Scatter Plot)',
          'ແຕ່ລະຈຸດ = ນ.ສ 1 ຄົນ · ສີຂຽວ = ສູງ · ສີຟ້າ = ກາງ · ສີແດງ = ສ່ຽງ',
-         [dcc.Graph(id='dash-scatter', config={'displayModeBar':False},
-                    style={'height':'380px'}, responsive=True)], accent='#0277BD'),
+         [dcc.Graph(id='dash-scatter', config={'displayModeBar':False})], accent='#0277BD'),
 
 ])
 
