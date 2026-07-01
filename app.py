@@ -94,6 +94,19 @@ html, body { overflow-x: hidden; max-width: 100vw; }
     .search-kpi-main { padding: 8px 10px !important; }
     .search-kpi-main .kpi-name { font-size: 13px !important; }
     .search-kpi-main .kpi-sub { font-size: 11px !important; }
+    .kpi-row {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 8px !important;
+        margin-bottom: 16px !important;
+    }
+    .kpi-row > div {
+        min-width: 0 !important;
+        flex: unset !important;
+        padding: 14px 8px !important;
+    }
+    .kpi-row > div > div:nth-child(2) { font-size: 22px !important; }
+    .kpi-row > div > div:last-child { font-size: 10px !important; margin-top: 3px !important; }
 }
 </style>
 
