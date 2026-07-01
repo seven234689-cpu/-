@@ -395,11 +395,12 @@ def register_callbacks(app):
             ))
         fig.update_layout(
             plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
-            height=420, margin=dict(t=60, b=80, l=64, r=40), showlegend=True,
-            legend=dict(orientation='h', y=-0.3, x=0.5, xanchor='center',
+            height=380, margin=dict(t=40, b=100, l=48, r=20), showlegend=True,
+            autosize=True,
+            legend=dict(orientation='h', y=-0.4, x=0.5, xanchor='center',
                         bgcolor='rgba(0,0,0,0)', font=dict(size=11, color=db.TX2)),
             hoverlabel=dict(bgcolor='white', font_size=13, font_color='#1E2A3A', bordercolor='#1E2A3A', font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'))
-        fig.update_xaxes(showgrid=False, zeroline=False, color=db.TX, title_text='ພາກຮຽນ')
+        fig.update_xaxes(showgrid=False, zeroline=False, color=db.TX, title_text='ພາກຮຽນ', tickfont=dict(size=11))
         fig.update_yaxes(showgrid=True, gridcolor='#EEF0F5', zeroline=False,
                          range=[0, 4.3], title_text='GPA')
 
@@ -511,7 +512,8 @@ def register_callbacks(app):
             html.Div(style=db.card_style('#6A1B9A'), children=[
                 db.sec_title('ກາຟ GPA ຕົວຈິງ VS GPA ຄາດຄະເນ'),
                 db.sec_sub(f'ດຳ = ຂໍ້ມູນຈິງ · ຟ້າ = {known_k} ພາກທີ່ໃສ່ · ເສັ້ນປະ = ຄາດຄະເນພາກທີ່ເຫຼືອ'),
-                dcc.Graph(figure=fig, config={'displayModeBar': False}),
+                dcc.Graph(figure=fig, config={'displayModeBar': False},
+                          style={'minHeight': '320px'}, responsive=True),
             ]),
             html.Div(style=db.card_style(db.BLUE), children=[
                 db.sec_title('ຕາຕະລາງ GPA ຕົວຈິງ VS GPA ຄາດຄະເນ'),
