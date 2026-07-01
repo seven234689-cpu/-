@@ -66,8 +66,7 @@ html, body { overflow-x: hidden; max-width: 100vw; }
     gap: 20px;
     margin-bottom: 20px;
 }
-.js-plotly-plot { max-width: 100% !important; }
-.main-svg { max-width: 100% !important; }
+.js-plotly-plot { overflow: visible !important; }
 @media (max-width: 768px) {
     #sidebar-slot > div { display: none !important; }
     #page-content > div { margin-left: 0 !important; padding-bottom: 70px !important; }
