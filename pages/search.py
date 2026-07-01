@@ -241,7 +241,7 @@ def register_callbacks(app):
                     'whiteSpace':'normal','height':'auto','maxWidth':'180px',
                     'overflow':'hidden','textOverflow':'ellipsis',
                 },
-                style_column_conditional=[
+                style_cell_conditional=[
                     {'if':{'column_id':'ຊື່ວິຊາ'},'textAlign':'left','minWidth':'120px','maxWidth':'200px'},
                     {'if':{'column_id':'ພາກ'},'minWidth':'50px','maxWidth':'60px'},
                     {'if':{'column_id':'ລະຫັດ'},'minWidth':'80px','maxWidth':'100px'},
