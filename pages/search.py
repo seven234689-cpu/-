@@ -175,29 +175,32 @@ def register_callbacks(app):
         })
 
         return html.Div([
-            # KPI row
-            html.Div(className='search-kpi-row', style={'display':'flex','gap':'10px','marginBottom':'14px','flexWrap':'wrap'}, children=[
-                html.Div(className='search-kpi-main', style={
-                    'background':db.PAGE,'borderRadius':'10px','padding':'12px 14px',
-                    'flex':'2','border':f'1px solid {db.BD}','minWidth':'150px'
-                }, children=[
-                    html.Div(code, className='kpi-name', style={**LAO,'fontSize':'17px','fontWeight':'700','color':db.TX2}),
-                    html.Div(f'{gen_v} · {major_v}', className='kpi-sub', style={**LAO,'fontSize':'14px','fontWeight':'600','color':db.TX2,'marginTop':'4px'}),
-                    html.Div(style={'marginTop':'6px'}, children=[
-                        html.Span(f'ກຸ່ມ {cl_v}', style={
-                            **LAO,
-                            'background':f'{cl_c}15','color':cl_c,
-                            'padding':'2px 10px','borderRadius':'20px',
-                            'fontSize':'13px','fontWeight':'700',
-                            'border':f'1px solid {cl_c}30'
-                        })
-                    ])
+            # ── ຂໍ້ມູນ ນ.ສ ──
+            html.Div(style={
+                'background':db.PAGE,'borderRadius':'10px','padding':'12px 16px',
+                'border':f'1px solid {db.BD}','marginBottom':'10px',
+                'display':'flex','alignItems':'center','gap':'12px','flexWrap':'wrap'
+            }, children=[
+                html.Div(children=[
+                    html.Div(code, style={**LAO,'fontSize':'16px','fontWeight':'700','color':db.TX2}),
+                    html.Div(f'{gen_v} · {major_v}', style={**LAO,'fontSize':'12px','color':db.TX,'marginTop':'2px'}),
                 ]),
-                mk(str(gpa_all),    'GPA ລວມທຸກພາກ', '#6A1B9A'),
-                mk(str(gpa_range),  kpi_label,        '#E65100'),
-                mk(str(n_subj),     'ວິຊາ (range)',    db.BLUE),
-                mk(str(ac),         'ເກຣດ A',          db.GREEN),
-                mk(str(fc),         'ເກຣດ F',          db.RED),
+                html.Span(f'ກຸ່ມ {cl_v}', style={
+                    **LAO,'background':f'{cl_c}15','color':cl_c,
+                    'padding':'3px 12px','borderRadius':'20px',
+                    'fontSize':'12px','fontWeight':'700','border':f'1px solid {cl_c}30'
+                })
+            ]),
+            # ── GPA row ──
+            html.Div(style={'display':'flex','gap':'8px','marginBottom':'8px'}, children=[
+                mk(str(gpa_all),   'GPA ລວມທຸກພາກ', '#6A1B9A'),
+                mk(str(gpa_range), kpi_label,         '#E65100'),
+            ]),
+            # ── Stats row ──
+            html.Div(style={'display':'flex','gap':'8px','marginBottom':'14px'}, children=[
+                mk(str(n_subj), 'ວິຊາ (range)', db.BLUE),
+                mk(str(ac),     'ເກຣດ A',        db.GREEN),
+                mk(str(fc),     'ເກຣດ F',        db.RED),
             ]),
 
             # GPA Trend
