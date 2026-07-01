@@ -76,7 +76,7 @@ def alert_box(msg, kind="error"):
     ])
 
 def page_shell(*, header_children, body_children, location_id):
-    return html.Div(style={
+    return html.Div(className="login-page", style={
         "minHeight":"100vh",
         "background":BG,
         "display":"flex","flexDirection":"column",
@@ -84,7 +84,7 @@ def page_shell(*, header_children, body_children, location_id):
         "padding":"32px 16px","fontFamily":FONT,
     }, children=[
         dcc.Location(id=location_id, refresh=True),
-        html.Div(style={
+        html.Div(className="login-card", style={
             "width":"100%","maxWidth":"430px",
             "background":"#FFFFFF",
             "border":"1px solid #E8EBF0",

@@ -107,7 +107,9 @@ html, body { overflow-x: hidden; max-width: 100vw; }
     }
     .kpi-row > div > div:nth-child(2) { font-size: 22px !important; }
     .kpi-row > div > div:last-child { font-size: 10px !important; margin-top: 3px !important; }
-    .login-card-body { padding: 8px 20px 28px !important; }
+    .login-page { padding: 0 !important; justify-content: center !important; }
+    .login-card { max-width: 100% !important; border-radius: 0 !important; border: none !important; box-shadow: none !important; min-height: 100vh; }
+    .login-card-body { padding: 8px 24px 32px !important; }
 }
 </style>
 
