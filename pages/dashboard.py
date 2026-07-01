@@ -7,7 +7,7 @@ import db
 # ── Chart helpers ──────────────────────────────────────────
 def B(h=300, leg=False):
     return dict(plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
-        height=h, margin=dict(t=24,b=48,l=56,r=24), showlegend=leg,
+        height=h, margin=dict(t=24,b=48,l=56,r=24), showlegend=leg, autosize=True,
         legend=dict(orientation='h',y=1.08,x=0,bgcolor='rgba(0,0,0,0)',
                     font=dict(size=12,color=db.TX2)),
         hoverlabel=dict(bgcolor='white',font_size=13,font_color='#1E2A3A',bordercolor='#1E2A3A',font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'))
@@ -173,11 +173,13 @@ def layout():
         html.Div(style=db.card_style(db.BLUE), children=[
             db.sec_title('ການກະຈາຍຂອງເກຣດ'),
             db.sec_sub('ຈຳນວນນ.ສ ທີ່ໄດ້ເກຣດແຕ່ລະລະດັບ'),
-            dcc.Graph(id='dash-grade', config={'displayModeBar':False})
+            dcc.Graph(id='dash-grade', config={'displayModeBar':False},
+                      style={'height':'320px'}, responsive=True)
         ]),
         card('ການຈັດກຸ່ມ (K-Means)','ແບ່ງ 3 ກຸ່ມ: ສູງ / ກາງ / ສ່ຽງ',
              [
-                 dcc.Graph(id='dash-donut', config={'displayModeBar':False}),
+                 dcc.Graph(id='dash-donut', config={'displayModeBar':False},
+                           style={'height':'280px'}, responsive=True),
                  html.Div(id='dash-cluster-stats', style={'display':'flex','gap':'8px','marginTop':'8px','flexWrap':'wrap'})
              ], accent=db.GREEN),
     ]),
@@ -187,28 +189,33 @@ def layout():
         html.Div(style=db.card_style(db.BLUE), children=[
             db.sec_title('ແນວໂນ້ມ GPA ລາຍພາກ'),
             db.sec_sub('GPA ສະເລ່ຍຂອງນ.ສ ທຸກຄົນ ຕາມພາກຮຽນ'),
-            dcc.Graph(id='dash-trend', config={'displayModeBar':False})
+            dcc.Graph(id='dash-trend', config={'displayModeBar':False},
+                      style={'height':'280px'}, responsive=True)
         ]),
         html.Div(style=db.card_style('#6A1B9A'), children=[
             db.sec_title('GPA ປຽບທຽບ ຊາຍ vs ຍິງ'),
             db.sec_sub('ທ່ວງໂນ້ມ GPA ແຍກຕາມເພດ'),
-            dcc.Graph(id='dash-gender', config={'displayModeBar':False})
+            dcc.Graph(id='dash-gender', config={'displayModeBar':False},
+                      style={'height':'280px'}, responsive=True)
         ]),
     ]),
 
     html.Div(className='grid-2col', children=[
         card('🔴 Top 10 ວິຊາທີ່ຍາກທີ່ສຸດ',
              'ວິຊາທີ່ ນ.ສ ໄດ້ຄະແນນສະເລ່ຍຕ່ຳທີ່ສຸດ 10 ວິຊາ',
-             [dcc.Graph(id='dash-hard', config={'displayModeBar':False})], accent=db.RED),
+             [dcc.Graph(id='dash-hard', config={'displayModeBar':False},
+                        style={'height':'360px'}, responsive=True)], accent=db.RED),
         card('🟢 Top 10 ວິຊາທີ່ງ່າຍທີ່ສຸດ',
              'ວິຊາທີ່ນ.ສ ໄດ້ຄະແນນສະເລ່ຍສູງທີ່ສຸດ 10 ວິຊາ',
-             [dcc.Graph(id='dash-easy', config={'displayModeBar':False})], accent=db.GREEN),
+             [dcc.Graph(id='dash-easy', config={'displayModeBar':False},
+                        style={'height':'360px'}, responsive=True)], accent=db.GREEN),
     ]),
 
     # Scatter Plot
     card('ການກະຈາຍ GPA ລາຍຄົນ (Scatter Plot)',
          'ແຕ່ລະຈຸດ = ນ.ສ 1 ຄົນ · ສີຂຽວ = ສູງ · ສີຟ້າ = ກາງ · ສີແດງ = ສ່ຽງ',
-         [dcc.Graph(id='dash-scatter', config={'displayModeBar':False})], accent='#0277BD'),
+         [dcc.Graph(id='dash-scatter', config={'displayModeBar':False},
+                    style={'height':'320px'}, responsive=True)], accent='#0277BD'),
 
 ])
 
@@ -310,7 +317,7 @@ def register_callbacks(app):
         fgd.update_layout(
             plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
             height=380, margin=dict(t=40,b=56,l=64,r=64), showlegend=False,
-            bargap=0.3,
+            bargap=0.3, autosize=True,
             hoverlabel=dict(bgcolor='white',font_size=13,font_color='#1E2A3A',bordercolor='#1E2A3A',font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'))
         fgd.update_xaxes(**xax(), title_text='ເກຣດ')
         fgd.update_yaxes(**yax(), title_text='ຈຳນວນ',
@@ -328,7 +335,7 @@ def register_callbacks(app):
         ) for cl in ['ສູງ','ກາງ','ສ່ຽງ']])
         fsc.update_layout(
             plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
-            height=320, margin=dict(t=24,b=48,l=56,r=24), showlegend=True,
+            height=320, margin=dict(t=24,b=48,l=56,r=24), showlegend=True, autosize=True,
             legend=dict(orientation='h',y=1.08,x=0,bgcolor='rgba(0,0,0,0)',
                         font=dict(size=12,color=db.TX2)),
             hoverlabel=dict(bgcolor='white',font_size=13,font_color='#1E2A3A',bordercolor='#1E2A3A',font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'))
@@ -351,7 +358,7 @@ def register_callbacks(app):
         ))
         fd.update_layout(
             plot_bgcolor=db.CARD, paper_bgcolor=db.CARD, font=db.FONT,
-            height=320, margin=dict(t=20,b=20,l=20,r=20), showlegend=True,
+            height=320, margin=dict(t=20,b=20,l=20,r=20), showlegend=True, autosize=True,
             legend=dict(orientation='h', x=0.5, y=-0.15, xanchor='center',
                         font=dict(size=12, color=db.TX2), bgcolor='rgba(0,0,0,0)'),
             hoverlabel=dict(bgcolor='white',font_size=13,font_color='#1E2A3A',bordercolor='#1E2A3A',font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'),
@@ -385,39 +392,39 @@ def register_callbacks(app):
         subj_avg_f = (dff.groupby(['subject_code','subject_name'])['grade_point']
                         .mean().reset_index(name='avg_gp').sort_values('avg_gp'))
         subj_avg_f['avg_gp'] = subj_avg_f['avg_gp'].round(3)
-        subj_avg_f['label'] = subj_avg_f['subject_code'] + '   ' + subj_avg_f['subject_name'].str[:28]
+        subj_avg_f['label'] = subj_avg_f['subject_code'] + ' ' + subj_avg_f['subject_name'].str[:18]
 
         top_hard_f = subj_avg_f.head(10).copy()
-        top_hard_f['label'] = top_hard_f['label'].str[:30]
+        top_hard_f['label'] = top_hard_f['label'].str[:22]
         top_easy_f = subj_avg_f.tail(10).sort_values('avg_gp', ascending=True).copy()
-        top_easy_f['label'] = top_easy_f['label'].str[:30]
+        top_easy_f['label'] = top_easy_f['label'].str[:22]
 
         fh = go.Figure()
         fh.add_trace(go.Bar(
             x=top_hard_f['avg_gp'], y=top_hard_f['label'], orientation='h',
             marker_color='#C62828', marker_line_width=0,
             text=top_hard_f['avg_gp'].round(2), textposition='outside',
-            textfont=dict(size=11, color=db.TX),
+            textfont=dict(size=10, color=db.TX),
             hovertemplate='<b>%{y}</b><br>GP: %{x:.3f}<extra></extra>'
         ))
         fh.update_layout(
             plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
-            height=400, margin=dict(t=24,b=48,l=220,r=60),
+            height=360, margin=dict(t=16,b=40,l=150,r=40), autosize=True,
             hoverlabel=dict(bgcolor='white',font_size=13,font_color='#1E2A3A',bordercolor='#1E2A3A',font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'))
         fh.update_xaxes(**yax(), title_text='Avg Grade Point', range=[0, 4.5])
-        fh.update_yaxes(**xax(), title_text='', tickfont=dict(size=11))
+        fh.update_yaxes(**xax(), title_text='', tickfont=dict(size=10))
 
         fe = go.Figure()
         fe.add_trace(go.Bar(
             x=top_easy_f['avg_gp'], y=top_easy_f['label'], orientation='h',
             marker_color='#2E7D32', marker_line_width=0,
             text=top_easy_f['avg_gp'].round(2), textposition='outside',
-            textfont=dict(size=11, color=db.TX),
+            textfont=dict(size=10, color=db.TX),
             hovertemplate='<b>%{y}</b><br>GP: %{x:.3f}<extra></extra>'
         ))
         fe.update_layout(
             plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
-            height=400, margin=dict(t=24,b=48,l=220,r=60),
+            height=360, margin=dict(t=16,b=40,l=150,r=40), autosize=True,
             hoverlabel=dict(bgcolor='white',font_size=13,font_color='#1E2A3A',bordercolor='#1E2A3A',font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'))
         fe.update_xaxes(**yax(), title_text='Avg Grade Point', range=[0, 4.5])
         fe.update_yaxes(**xax(), title_text='', tickfont=dict(size=11))
