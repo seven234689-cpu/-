@@ -104,7 +104,7 @@ def page_shell(*, header_children, body_children, location_id):
                 }),
             ]),
             *header_children,
-            html.Div(style={"padding":"8px 40px 36px"}, children=body_children),
+            html.Div(className="login-card-body", style={"padding":"8px 40px 36px"}, children=body_children),
         ]),
         html.Div("v1.0.0", style={
             "marginTop":"18px","fontSize":"11px","color":"#AEB7C4","fontFamily":FONT,
