@@ -87,6 +87,13 @@ html, body { overflow-x: hidden; max-width: 100vw; }
     .pred-gpa-grid input { width: 100% !important; box-sizing: border-box !important; }
     .pred-result-table { font-size: 11px !important; }
     .pred-result-table th, .pred-result-table td { padding: 6px 8px !important; }
+    .search-kpi-row { gap: 6px !important; margin-bottom: 10px !important; }
+    .search-kpi-row > div { padding: 8px 10px !important; min-width: 0 !important; }
+    .search-kpi-row .kpi-value { font-size: 18px !important; }
+    .search-kpi-row .kpi-label { font-size: 10px !important; margin-top: 2px !important; }
+    .search-kpi-main { padding: 8px 10px !important; }
+    .search-kpi-main .kpi-name { font-size: 13px !important; }
+    .search-kpi-main .kpi-sub { font-size: 11px !important; }
 }
 </style>
 

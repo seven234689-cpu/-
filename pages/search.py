@@ -158,12 +158,12 @@ def register_callbacks(app):
 
         # ── KPI ───────────────────────────────────────────────
         def mk(v, l, c):
-            return html.Div(style={
+            return html.Div(className='search-kpi-item', style={
                 'background': db.PAGE, 'borderRadius': '10px', 'padding': '12px 14px',
                 'textAlign': 'center', 'flex': '1', 'border': f'1px solid {db.BD}', 'minWidth': '80px'
             }, children=[
-                html.Div(str(v), style={'fontSize': '24px', 'fontWeight': '700', 'color': c}),
-                html.Div(l, style={**LAO, 'fontSize': '12px', 'color': db.TX, 'marginTop': '4px'})
+                html.Div(str(v), className='kpi-value', style={'fontSize': '24px', 'fontWeight': '700', 'color': c}),
+                html.Div(l, className='kpi-label', style={**LAO, 'fontSize': '12px', 'color': db.TX, 'marginTop': '4px'})
             ])
 
         kpi_label = f'GPA ({range_label})' if sem_only == 'all' else f'GPA ({sem_only})'
@@ -176,13 +176,13 @@ def register_callbacks(app):
 
         return html.Div([
             # KPI row
-            html.Div(style={'display':'flex','gap':'10px','marginBottom':'14px','flexWrap':'wrap'}, children=[
-                html.Div(style={
+            html.Div(className='search-kpi-row', style={'display':'flex','gap':'10px','marginBottom':'14px','flexWrap':'wrap'}, children=[
+                html.Div(className='search-kpi-main', style={
                     'background':db.PAGE,'borderRadius':'10px','padding':'12px 14px',
                     'flex':'2','border':f'1px solid {db.BD}','minWidth':'150px'
                 }, children=[
-                    html.Div(code, style={**LAO,'fontSize':'17px','fontWeight':'700','color':db.TX2}),
-                    html.Div(f'{gen_v} · {major_v}', style={**LAO,'fontSize':'14px','fontWeight':'600','color':db.TX2,'marginTop':'4px'}),
+                    html.Div(code, className='kpi-name', style={**LAO,'fontSize':'17px','fontWeight':'700','color':db.TX2}),
+                    html.Div(f'{gen_v} · {major_v}', className='kpi-sub', style={**LAO,'fontSize':'14px','fontWeight':'600','color':db.TX2,'marginTop':'4px'}),
                     html.Div(style={'marginTop':'6px'}, children=[
                         html.Span(f'ກຸ່ມ {cl_v}', style={
                             **LAO,
