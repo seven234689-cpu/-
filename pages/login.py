@@ -92,19 +92,19 @@ def page_shell(*, header_children, body_children, location_id):
             "boxShadow":"0 4px 24px rgba(20,30,50,.06)",
             "overflow":"hidden",
         }, children=[
-            html.Div(className="login-header-top", style={"textAlign":"center","padding":"24px 24px 6px"}, children=[
-                html.Img(src="/assets/Logo_NUOL-ORiginal.png", className="login-logo", style={
-                    "width":"80px","height":"80px","objectFit":"contain","marginBottom":"8px",
+            html.Div(style={"textAlign":"center","padding":"36px 36px 8px"}, children=[
+                html.Img(src="/assets/Logo_NUOL-ORiginal.png", style={
+                    "width":"150px","height":"150px","objectFit":"contain","marginBottom":"12px",
                 }),
-                html.Div("ມະຫາວິທະຍາໄລແຫ່ງຊາດ", className="login-title", style={
-                    "fontSize":"17px","fontWeight":"700","color":TX,"fontFamily":FONT,
+                html.Div("ມະຫາວິທະຍາໄລແຫ່ງຊາດ", style={
+                    "fontSize":"20px","fontWeight":"700","color":TX,"fontFamily":FONT,
                 }),
-                html.Div("ລະບົບວິເຄາະແນວໂນ້ມຜົນການຮຽນ", className="login-sub", style={
-                    "fontSize":"13px","color":TX2,"marginTop":"3px","fontFamily":FONT,
+                html.Div("ລະບົບວິເຄາະແນວໂນ້ມຜົນການຮຽນ", style={
+                    "fontSize":"15px","color":TX2,"marginTop":"4px","fontFamily":FONT,
                 }),
             ]),
             *header_children,
-            html.Div(className="login-card-body", style={"padding":"6px 28px 20px"}, children=body_children),
+            html.Div(style={"padding":"8px 40px 36px"}, children=body_children),
         ]),
     ])
 
