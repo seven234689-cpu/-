@@ -60,6 +60,16 @@ html, body { overflow-x: hidden; max-width: 100vw; }
     background: #FFEBEE; padding: 4px 10px; border-radius: 8px;
     font-family: 'Noto Sans Lao', Arial, sans-serif; font-weight: 600;
 }
+.grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+.js-plotly-plot, .plot-container {
+    max-width: 100% !important;
+    overflow: hidden !important;
+}
 @media (max-width: 768px) {
     #sidebar-slot > div { display: none !important; }
     #page-content > div { margin-left: 0 !important; padding-bottom: 70px !important; }
@@ -68,6 +78,10 @@ html, body { overflow-x: hidden; max-width: 100vw; }
     #page-content { padding-top: 54px; }
     .dash-table-container { overflow-x: auto !important; }
     input { font-size: 16px !important; }
+    .grid-2col { grid-template-columns: 1fr !important; }
+    .kpi-row { gap: 8px !important; }
+    .kpi-row > div { min-width: calc(50% - 8px) !important; flex: 1 1 calc(50% - 8px) !important; }
+    .js-plotly-plot { min-height: 220px; }
 }
 </style>
 

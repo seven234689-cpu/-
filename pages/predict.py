@@ -255,7 +255,7 @@ def register_callbacks(app):
             k += 1
         k = max(k, 1)
 
-        note = ('⭐ ຂໍ້ມູນຄົບ 8 ພາກ — ຈະສະແດງ ຄາດຄະເນ vs ຈິງ' if n_all == 8 else
+        note = ('⭐ ຂໍ້ມູນຄົບ 8 ພາກ — ຈະສະແດງ GPA ຕົວຈິງ VS GPA ຄາດຄະເນ' if n_all == 8 else
                 f'ມີຂໍ້ມູນຈິງ {k} ພາກ · ຄາດຄະເນພາກທີ່ເຫຼືອ')
         status = html.Div(style={'background': '#E8F5E9', 'border': '1px solid #A5D6A7',
                                   'borderRadius': '8px', 'padding': '10px 14px'}, children=[
@@ -371,10 +371,10 @@ def register_callbacks(app):
             ax = [db.sem_order[i - 1] for i in sorted(actual)]
             ay = [actual[i] for i in sorted(actual)]
             fig.add_trace(go.Scatter(
-                x=ax, y=ay, mode='lines+markers', name='GPA ຈິງ',
+                x=ax, y=ay, mode='lines+markers', name='GPA ຕົວຈິງ',
                 line=dict(color='#000', width=3),
                 marker=dict(size=10, color='black', line=dict(color='white', width=2)),
-                hovertemplate='%{x} (ຈິງ): %{y:.3f}<extra></extra>'
+                hovertemplate='%{x} (ຕົວຈິງ): %{y:.3f}<extra></extra>'
             ))
         fig.add_trace(go.Scatter(
             x=db.sem_order[:known_k], y=known_gpas,
@@ -398,7 +398,7 @@ def register_callbacks(app):
             height=420, margin=dict(t=60, b=80, l=64, r=40), showlegend=True,
             legend=dict(orientation='h', y=-0.3, x=0.5, xanchor='center',
                         bgcolor='rgba(0,0,0,0)', font=dict(size=11, color=db.TX2)),
-            hoverlabel=dict(bgcolor='white', font_size=13, bordercolor=db.BD))
+            hoverlabel=dict(bgcolor='white', font_size=13, font_color='#1E2A3A', bordercolor='#1E2A3A', font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'))
         fig.update_xaxes(showgrid=False, zeroline=False, color=db.TX, title_text='ພາກຮຽນ')
         fig.update_yaxes(showgrid=True, gridcolor='#EEF0F5', zeroline=False,
                          range=[0, 4.3], title_text='GPA')
@@ -406,7 +406,7 @@ def register_callbacks(app):
         header = [
             html.Th('ພາກ', style={**LAO, 'padding': '10px 12px', 'background': '#F0F4FF',
                                    'color': db.TX, 'fontSize': '12px', 'fontWeight': '600'}),
-            html.Th('ຈິງ ✓', style={**LAO, 'padding': '10px 12px', 'background': '#F0F4FF',
+            html.Th('GPA ຕົວຈິງ ✓', style={**LAO, 'padding': '10px 12px', 'background': '#F0F4FF',
                                     'color': '#000', 'fontSize': '12px', 'fontWeight': '700', 'textAlign': 'center'}),
         ] + [html.Th(f"{MODEL_INFO.get(m, {}).get('icon', '')} {m}",
                      style={**LAO, 'padding': '10px 10px', 'background': '#F0F4FF',
@@ -509,13 +509,13 @@ def register_callbacks(app):
                          children=rmse_cards),
             ]),
             html.Div(style=db.card_style('#6A1B9A'), children=[
-                db.sec_title('ກາຟ ຄາດຄະເນ vs ຈິງ'),
+                db.sec_title('ກາຟ GPA ຕົວຈິງ VS GPA ຄາດຄະເນ'),
                 db.sec_sub(f'ດຳ = ຂໍ້ມູນຈິງ · ຟ້າ = {known_k} ພາກທີ່ໃສ່ · ເສັ້ນປະ = ຄາດຄະເນພາກທີ່ເຫຼືອ'),
                 dcc.Graph(figure=fig, config={'displayModeBar': False}),
             ]),
             html.Div(style=db.card_style(db.BLUE), children=[
-                db.sec_title('ຕາຕະລາງ ຄາດຄະເນ vs ຈິງ'),
-                db.sec_sub('err = |ຄາດຄະເນ − ຈິງ| · ຂຽວ ≤ 0.3 · ແດງ > 0.3'),
+                db.sec_title('ຕາຕະລາງ GPA ຕົວຈິງ VS GPA ຄາດຄະເນ'),
+                db.sec_sub('GPA ຕົວຈິງ VS GPA ຄາດຄະເນ · ຂຽວ ≤ 0.3 · ແດງ > 0.3'),
                 html.Div(style={'overflowX': 'auto', 'borderRadius': '10px',
                                 'border': f'1px solid {db.BD}', 'marginTop': '12px'}, children=[
                     html.Table(style={'width': '100%', 'borderCollapse': 'collapse'}, children=[
@@ -586,7 +586,7 @@ def build_real_acc_card(acc):
     ]))
     return html.Div(style={**db.card_style('#375623')}, children=[
         db.sec_title('🎯 ຄວາມແມ່ນຍຳຕາມຂໍ້ມູນຈິງ — ຄາດຄະເນຈາກ 1/I ພາກດຽວ'),
-        db.sec_sub(f'ທົດສອບກັບ {n_stu} ນ.ສ ທີ່ມີຂໍ້ມູນຄົບ 8 ພາກ · RMSE = |ຄາດຄະເນ − ຈິງ| · ຕ່ຳ = ດີ'),
+        db.sec_sub(f'ທົດສອບກັບ {n_stu} ນ.ສ ທີ່ມີຂໍ້ມູນຄົບ 8 ພາກ · RMSE = |ຄາດຄະເນ − ຕົວຈິງ| · ຕ່ຳ = ດີ'),
         html.Div(style={'overflowX': 'auto', 'borderRadius': '10px', 'border': f'1px solid {db.BD}', 'marginTop': '12px'},
                  children=[html.Table(style={'width': '100%', 'borderCollapse': 'collapse'}, children=[
             html.Thead(html.Tr(children=[

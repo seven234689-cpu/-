@@ -165,7 +165,8 @@ def chart_base(h=300, leg=False):
                     bgcolor='rgba(0,0,0,0)',
                     font=dict(size=12, color=TX2)),
         hoverlabel=dict(bgcolor='white', font_size=13,
-                        font_color=TX2, bordercolor=BD)
+                        font_color='#1E2A3A', bordercolor='#1E2A3A',
+                        font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif')
     )
 
 def xax():

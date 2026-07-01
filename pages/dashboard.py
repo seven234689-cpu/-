@@ -10,7 +10,7 @@ def B(h=300, leg=False):
         height=h, margin=dict(t=24,b=48,l=56,r=24), showlegend=leg,
         legend=dict(orientation='h',y=1.08,x=0,bgcolor='rgba(0,0,0,0)',
                     font=dict(size=12,color=db.TX2)),
-        hoverlabel=dict(bgcolor='white',font_size=13,font_color=db.TX2,bordercolor=db.BD))
+        hoverlabel=dict(bgcolor='white',font_size=13,font_color='#1E2A3A',bordercolor='#1E2A3A',font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'))
 
 def xax(): return dict(showgrid=False,zeroline=False,color=db.TX,linecolor=db.BD,linewidth=1)
 def yax(): return dict(showgrid=True,gridcolor='#EEF0F5',zeroline=False,color=db.TX,linecolor=db.BD)
@@ -21,10 +21,7 @@ fig_donut = go.Figure(go.Pie(
     labels=['ກຸ່ມ ສູງ', 'ກຸ່ມ ກາງ', 'ກຸ່ມ ສ່ຽງ'],
     values=[db.high, db.mid, db.risk], hole=0.55,
     marker=dict(colors=['#2E7D32','#1565C0','#C62828'], line=dict(color='white',width=3)),
-    textinfo='value+percent',
-    insidetextorientation='horizontal',
-    textfont=dict(size=13, color='white', family='Noto Sans Lao,Segoe UI'),
-    textposition='inside',
+    textinfo='none',
     hovertemplate='<b>%{label}</b><br>%{value} ຄົນ<br>%{percent}<extra></extra>'
 ))
 fig_donut.update_layout(
@@ -35,7 +32,7 @@ fig_donut.update_layout(
         font=dict(size=12, color=db.TX2),
         bgcolor='rgba(0,0,0,0)'
     ),
-    hoverlabel=dict(bgcolor='white',font_size=13,bordercolor=db.BD),
+    hoverlabel=dict(bgcolor='white',font_size=13,font_color='#1E2A3A',bordercolor='#1E2A3A',font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'),
     annotations=[dict(
         text=f'<b>{db.total}</b><br>ນ.ສ ທັງໝົດ',
         x=0.5, y=0.5, showarrow=False,
@@ -159,7 +156,7 @@ def layout():
 
 
     # KPI row
-    html.Div(style={'display':'flex','gap':'12px','marginBottom':'22px','flexWrap':'wrap'}, children=[
+    html.Div(className='kpi-row', style={'display':'flex','gap':'12px','marginBottom':'22px','flexWrap':'wrap'}, children=[
         db.kpi_card(db.total,       'ນ.ສ ທັງໝົດ',   db.BLUE,   '/assets/grad.png'),
         db.kpi_card(db.total_subj,  'ວິຊາທັງໝົດ',   '#546078', '/assets/book.png'),
         db.kpi_card(db.avgGPA,      'GPA ສະເລ່ຍ',   db.BLUE,   '/assets/chart.png'),
@@ -169,50 +166,56 @@ def layout():
         db.kpi_card(f'{db.frate}%', 'ອັດຕາ F',       db.RED,    '/assets/close.png'),
         db.kpi_card(db.male,        'ນ.ສ ຊາຍ',       db.BLUE,   '/assets/male.png'),
         db.kpi_card(db.female,      'ນ.ສ ຍິງ',       '#6A1B9A', '/assets/female.png'),
-
     ]),
 
-    # Grade + Cluster (ขึ้นมาบน)
-    html.Div(style={'display':'grid','gridTemplateColumns':'1fr 1fr','gap':'20px','marginBottom':'20px'}, children=[
+    # Grade + Cluster
+    html.Div(className='grid-2col', children=[
         html.Div(style=db.card_style(db.BLUE), children=[
             db.sec_title('ການກະຈາຍຂອງເກຣດ'),
             db.sec_sub('ຈຳນວນນ.ສ ທີ່ໄດ້ເກຣດແຕ່ລະລະດັບ'),
-            dcc.Graph(id='dash-grade', config={'displayModeBar':False})
+            dcc.Graph(id='dash-grade', config={'displayModeBar':False},
+                      style={'height':'300px'}, responsive=True)
         ]),
         card('ການຈັດກຸ່ມ (K-Means)','ແບ່ງ 3 ກຸ່ມ: ສູງ / ກາງ / ສ່ຽງ',
              [
-                 dcc.Graph(id='dash-donut', config={'displayModeBar':False}),
-                 html.Div(id='dash-cluster-stats', style={'display':'flex','gap':'8px','marginTop':'8px'})
+                 dcc.Graph(id='dash-donut', config={'displayModeBar':False},
+                           style={'height':'320px'}, responsive=True),
+                 html.Div(id='dash-cluster-stats', style={'display':'flex','gap':'8px','marginTop':'8px','flexWrap':'wrap'})
              ], accent=db.GREEN),
     ]),
 
-    # Trend + Gender (ลงมาล่าง)
-    html.Div(style={'display':'grid','gridTemplateColumns':'1fr 1fr','gap':'20px','marginBottom':'20px'}, children=[
+    # Trend + Gender
+    html.Div(className='grid-2col', children=[
         html.Div(style=db.card_style(db.BLUE), children=[
             db.sec_title('ແນວໂນ້ມ GPA ລາຍພາກ'),
             db.sec_sub('GPA ສະເລ່ຍຂອງນ.ສ ທຸກຄົນ ຕາມພາກຮຽນ'),
-            dcc.Graph(id='dash-trend', config={'displayModeBar':False})
+            dcc.Graph(id='dash-trend', config={'displayModeBar':False},
+                      style={'height':'300px'}, responsive=True)
         ]),
         html.Div(style=db.card_style('#6A1B9A'), children=[
             db.sec_title('GPA ປຽບທຽບ ຊາຍ vs ຍິງ'),
             db.sec_sub('ທ່ວງໂນ້ມ GPA ແຍກຕາມເພດ'),
-            dcc.Graph(id='dash-gender', config={'displayModeBar':False})
+            dcc.Graph(id='dash-gender', config={'displayModeBar':False},
+                      style={'height':'300px'}, responsive=True)
         ]),
     ]),
 
-    html.Div(style={'display':'grid','gridTemplateColumns':'1fr 1fr','gap':'20px','marginBottom':'20px'}, children=[
+    html.Div(className='grid-2col', children=[
         card('🔴 Top 10 ວິຊາທີ່ຍາກທີ່ສຸດ',
              'ວິຊາທີ່ ນ.ສ ໄດ້ຄະແນນສະເລ່ຍຕ່ຳທີ່ສຸດ 10 ວິຊາ',
-             [dcc.Graph(id='dash-hard', config={'displayModeBar':False})],accent=db.RED),
+             [dcc.Graph(id='dash-hard', config={'displayModeBar':False},
+                        style={'height':'340px'}, responsive=True)], accent=db.RED),
         card('🟢 Top 10 ວິຊາທີ່ງ່າຍທີ່ສຸດ',
              'ວິຊາທີ່ນ.ສ ໄດ້ຄະແນນສະເລ່ຍສູງທີ່ສຸດ 10 ວິຊາ',
-             [dcc.Graph(id='dash-easy', config={'displayModeBar':False})],accent=db.GREEN),
+             [dcc.Graph(id='dash-easy', config={'displayModeBar':False},
+                        style={'height':'340px'}, responsive=True)], accent=db.GREEN),
     ]),
 
     # Scatter Plot
     card('ການກະຈາຍ GPA ລາຍຄົນ (Scatter Plot)',
          'ແຕ່ລະຈຸດ = ນ.ສ 1 ຄົນ · ສີຂຽວ = ສູງ · ສີຟ້າ = ກາງ · ສີແດງ = ສ່ຽງ',
-         [dcc.Graph(id='dash-scatter', config={'displayModeBar':False})],accent='#0277BD'),
+         [dcc.Graph(id='dash-scatter', config={'displayModeBar':False},
+                    style={'height':'380px'}, responsive=True)], accent='#0277BD'),
 
 ])
 
@@ -315,7 +318,7 @@ def register_callbacks(app):
             plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
             height=380, margin=dict(t=40,b=56,l=64,r=64), showlegend=False,
             bargap=0.3,
-            hoverlabel=dict(bgcolor='white',font_size=13,font_color=db.TX2,bordercolor=db.BD))
+            hoverlabel=dict(bgcolor='white',font_size=13,font_color='#1E2A3A',bordercolor='#1E2A3A',font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'))
         fgd.update_xaxes(**xax(), title_text='ເກຣດ')
         fgd.update_yaxes(**yax(), title_text='ຈຳນວນ',
                          range=[0, max(gd['count'].max()*1.15, 1)])
@@ -335,7 +338,7 @@ def register_callbacks(app):
             height=320, margin=dict(t=24,b=48,l=56,r=24), showlegend=True,
             legend=dict(orientation='h',y=1.08,x=0,bgcolor='rgba(0,0,0,0)',
                         font=dict(size=12,color=db.TX2)),
-            hoverlabel=dict(bgcolor='white',font_size=13,bordercolor=db.BD))
+            hoverlabel=dict(bgcolor='white',font_size=13,font_color='#1E2A3A',bordercolor='#1E2A3A',font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'))
         fsc.update_xaxes(showgrid=False,zeroline=False,color=db.TX,title_text='ລຳດັບນ.ສ')
         fsc.update_yaxes(showgrid=True,gridcolor='#EEF0F5',zeroline=False,
                          title_text='GPA',range=[0,4.2])
@@ -350,9 +353,7 @@ def register_callbacks(app):
             labels=['ກຸ່ມ ສູງ','ກຸ່ມ ກາງ','ກຸ່ມ ສ່ຽງ'],
             values=[high_n, mid_n, risk_n], hole=0.55,
             marker=dict(colors=['#2E7D32','#1565C0','#C62828'], line=dict(color='white',width=3)),
-            textinfo='value+percent', insidetextorientation='horizontal',
-            textfont=dict(size=13, color='white', family='Noto Sans Lao,Segoe UI'),
-            textposition='inside',
+            textinfo='none',
             hovertemplate='<b>%{label}</b><br>%{value} ຄົນ<br>%{percent}<extra></extra>'
         ))
         fd.update_layout(
@@ -360,7 +361,7 @@ def register_callbacks(app):
             height=320, margin=dict(t=20,b=20,l=20,r=20), showlegend=True,
             legend=dict(orientation='h', x=0.5, y=-0.15, xanchor='center',
                         font=dict(size=12, color=db.TX2), bgcolor='rgba(0,0,0,0)'),
-            hoverlabel=dict(bgcolor='white',font_size=13,bordercolor=db.BD),
+            hoverlabel=dict(bgcolor='white',font_size=13,font_color='#1E2A3A',bordercolor='#1E2A3A',font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'),
             annotations=[dict(
                 text=f'<b>{total_n}</b><br>ນ.ສ ທັງໝົດ',
                 x=0.5, y=0.5, showarrow=False,
@@ -409,7 +410,7 @@ def register_callbacks(app):
         fh.update_layout(
             plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
             height=400, margin=dict(t=24,b=48,l=220,r=60),
-            hoverlabel=dict(bgcolor='white',font_size=13,font_color=db.TX2,bordercolor=db.BD))
+            hoverlabel=dict(bgcolor='white',font_size=13,font_color='#1E2A3A',bordercolor='#1E2A3A',font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'))
         fh.update_xaxes(**yax(), title_text='Avg Grade Point', range=[0, 4.5])
         fh.update_yaxes(**xax(), title_text='', tickfont=dict(size=11))
 
@@ -424,7 +425,7 @@ def register_callbacks(app):
         fe.update_layout(
             plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
             height=400, margin=dict(t=24,b=48,l=220,r=60),
-            hoverlabel=dict(bgcolor='white',font_size=13,font_color=db.TX2,bordercolor=db.BD))
+            hoverlabel=dict(bgcolor='white',font_size=13,font_color='#1E2A3A',bordercolor='#1E2A3A',font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'))
         fe.update_xaxes(**yax(), title_text='Avg Grade Point', range=[0, 4.5])
         fe.update_yaxes(**xax(), title_text='', tickfont=dict(size=11))
 

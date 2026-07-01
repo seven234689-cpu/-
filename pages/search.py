@@ -146,7 +146,7 @@ def register_callbacks(app):
         fs.update_layout(
             plot_bgcolor='#FAFBFD', paper_bgcolor=db.CARD, font=db.FONT,
             height=300, margin=dict(t=60, b=60, l=64, r=40), showlegend=False,
-            hoverlabel=dict(bgcolor='white', font_size=13, bordercolor=db.BD),
+            hoverlabel=dict(bgcolor='white', font_size=13, font_color='#1E2A3A', bordercolor='#1E2A3A', font_family='Noto Sans Lao,Segoe UI,Arial,sans-serif'),
             title=dict(text=f'GPA Trend — ຊ່ວງ {range_label}',
                        font=dict(size=13, color=db.TX2), x=0.01, xanchor='left')
         )
